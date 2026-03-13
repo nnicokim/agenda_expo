@@ -1,5 +1,3 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
 # dependencies
 node_modules/
 
@@ -26,6 +24,10 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
+# Temporary files
+tmp/
+temp/
+
 # macOS
 .DS_Store
 *.pem
@@ -33,6 +35,9 @@ yarn-error.*
 # local env files
 .env*.local
 .env
+
+# Supabase local
+.supabase/
 
 # typescript
 *.tsbuildinfo
@@ -42,5 +47,5 @@ app-example
 # generated native folders
 /ios
 /android
-/vscode
-.vscode
+.vscode/
+.idea/
