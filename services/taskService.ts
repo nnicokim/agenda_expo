@@ -15,6 +15,7 @@ export interface Task {
   time: string | null;
   remind_me: boolean;
   repeat_type: RepeatType;
+  recurrence_parent_id: string | null;
   notification_id: string | null;
   created_at: string;
 }
@@ -31,6 +32,8 @@ export type TasksByDate = Record<DateStr, Task[]>;
 const TABLE = "tasks";
 
 export async function getTasksForDates(dates: DateStr[]): Promise<TasksByDate> {
+  await ensureMonthlyOccurrencesForDates(dates);
+
   const { data, error } = await supabase
     .from(TABLE)
     .select("*")
@@ -70,6 +73,7 @@ export async function addTask(date: DateStr, data: NewTaskData): Promise<Task> {
       time: data.time,
       remind_me: data.remind_me,
       repeat_type: data.repeat_type,
+      recurrence_parent_id: null,
     })
     .select()
     .single();
@@ -111,11 +115,126 @@ export async function deleteTask(taskId: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function deleteTaskWithMonthlyOccurrences(
+  taskId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from(TABLE)
+    .delete()
+    .or(`id.eq.${taskId},recurrence_parent_id.eq.${taskId}`);
+
+  if (error) throw error;
+}
+
+export async function getTaskFamilyNotificationIds(
+  taskId: string,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select("notification_id")
+    .or(`id.eq.${taskId},recurrence_parent_id.eq.${taskId}`);
+
+  if (error) throw error;
+
+  return (data ?? [])
+    .map((item) => item.notification_id as string | null)
+    .filter((id): id is string => Boolean(id));
+}
+
+async function ensureMonthlyOccurrencesForDates(
+  dates: DateStr[],
+): Promise<void> {
+  const uniqueDates = [...new Set(dates)].sort();
+  if (uniqueDates.length === 0) return;
+
+  const maxDate = uniqueDates[uniqueDates.length - 1];
+
+  const { data: mastersRaw, error: mastersError } = await supabase
+    .from(TABLE)
+    .select("*")
+    .eq("repeat_type", REPEAT_TYPES.MONTHLY)
+    .is("recurrence_parent_id", null)
+    .lte("day", maxDate);
+
+  // If SQL migration for recurrence_parent_id wasn't applied yet, avoid breaking app load.
+  if (mastersError) {
+    if (`${mastersError.message}`.includes("recurrence_parent_id")) {
+      return;
+    }
+    throw mastersError;
+  }
+
+  const masters = (mastersRaw ?? []).map(normalizeTask);
+  if (masters.length === 0) return;
+
+  const masterIds = masters.map((task) => task.id);
+  const { data: existingRaw, error: existingError } = await supabase
+    .from(TABLE)
+    .select("day, recurrence_parent_id")
+    .in("day", uniqueDates)
+    .in("recurrence_parent_id", masterIds);
+
+  if (existingError) throw existingError;
+
+  const existingKeys = new Set(
+    (existingRaw ?? []).map(
+      (row) => `${String(row.recurrence_parent_id)}::${String(row.day)}`,
+    ),
+  );
+
+  const rowsToInsert: Array<Record<string, unknown>> = [];
+
+  for (const master of masters) {
+    for (const targetDay of uniqueDates) {
+      if (!isMonthlyOccurrenceDay(master.day, targetDay)) continue;
+
+      const key = `${master.id}::${targetDay}`;
+      if (existingKeys.has(key)) continue;
+
+      rowsToInsert.push({
+        text: master.text,
+        day: targetDay,
+        done: false,
+        time: master.time,
+        remind_me: master.remind_me,
+        repeat_type: REPEAT_TYPES.MONTHLY,
+        recurrence_parent_id: master.id,
+        notification_id: null,
+      });
+    }
+  }
+
+  if (rowsToInsert.length === 0) return;
+
+  const { error: insertError } = await supabase
+    .from(TABLE)
+    .insert(rowsToInsert);
+  if (insertError) throw insertError;
+}
+
+function isMonthlyOccurrenceDay(baseDay: DateStr, targetDay: DateStr): boolean {
+  if (targetDay <= baseDay) return false;
+
+  const baseDate = new Date(`${baseDay}T12:00:00`);
+  const targetDate = new Date(`${targetDay}T12:00:00`);
+
+  if (Number.isNaN(baseDate.getTime()) || Number.isNaN(targetDate.getTime())) {
+    return false;
+  }
+
+  const monthsDiff =
+    (targetDate.getFullYear() - baseDate.getFullYear()) * 12 +
+    (targetDate.getMonth() - baseDate.getMonth());
+
+  return monthsDiff > 0 && baseDate.getDate() === targetDate.getDate();
+}
+
 function normalizeTask(task: any): Task {
   return {
     ...(task as Task),
     remind_me: Boolean(task?.remind_me),
     repeat_type: normalizeRepeatType(task?.repeat_type),
+    recurrence_parent_id: task?.recurrence_parent_id ?? null,
     time: task?.time ?? null,
     notification_id: task?.notification_id ?? null,
     created_at: task?.created_at ?? new Date().toISOString(),

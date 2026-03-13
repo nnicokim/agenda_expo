@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     color: COLORS.accentSoft,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
   },
   headerInfo: {

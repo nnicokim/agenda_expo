@@ -54,6 +54,7 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
         time: data.time,
         remind_me: data.remind_me,
         repeat_type: data.repeat_type ?? REPEAT_TYPES.NONE,
+        recurrence_parent_id: null,
         notification_id: null,
         created_at: new Date().toISOString(),
       };
@@ -142,11 +143,26 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
       }));
 
       try {
-        // Cancelar notificación si existía
-        if (task?.notification_id) {
-          await notifService.cancelNotification(task.notification_id);
+        const isMonthlyMaster =
+          task?.repeat_type === REPEAT_TYPES.MONTHLY &&
+          !task?.recurrence_parent_id;
+
+        if (isMonthlyMaster) {
+          const notificationIds =
+            await taskService.getTaskFamilyNotificationIds(taskId);
+          await Promise.all(
+            notificationIds.map((notificationId) =>
+              notifService.cancelNotification(notificationId),
+            ),
+          );
+          await taskService.deleteTaskWithMonthlyOccurrences(taskId);
+        } else {
+          // Cancelar notificación si existía
+          if (task?.notification_id) {
+            await notifService.cancelNotification(task.notification_id);
+          }
+          await taskService.deleteTask(taskId);
         }
-        await taskService.deleteTask(taskId);
       } catch (err) {
         console.error("Error borrando:", err);
         setTasksByDate((s) => ({ ...s, [date]: prev }));
