@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
+import { REPEAT_TYPES } from "../constants/repeat";
 import * as notifService from "../services/notificationService";
 import type {
-  DateStr,
-  NewTaskData,
-  Task,
-  TasksByDate,
+    DateStr,
+    NewTaskData,
+    Task,
+    TasksByDate,
 } from "../services/taskService";
 import * as taskService from "../services/taskService";
 
@@ -52,6 +53,7 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
         done: false,
         time: data.time,
         remind_me: data.remind_me,
+        repeat_type: data.repeat_type ?? REPEAT_TYPES.NONE,
         notification_id: null,
         created_at: new Date().toISOString(),
       };
@@ -73,6 +75,7 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
               saved.text,
               saved.day,
               saved.time,
+              saved.repeat_type,
             );
             if (notificationId) {
               await taskService.updateNotificationId(saved.id, notificationId);

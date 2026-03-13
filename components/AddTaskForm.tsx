@@ -1,17 +1,23 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRef, useState } from "react";
 import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    Keyboard,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import { COLORS } from "../constants/colors";
+import {
+    REPEAT_LABELS,
+    REPEAT_OPTIONS,
+    REPEAT_TYPES,
+    type RepeatType,
+} from "../constants/repeat";
 import type { NewTaskData } from "../services/taskService";
 import { formatTime } from "../utils/dateUtils";
 
@@ -23,17 +29,26 @@ export default function AddTaskForm({ onAdd }: AddTaskFormProps) {
   const [text, setText] = useState("");
   const [time, setTime] = useState<string | null>(null);
   const [remindMe, setRemindMe] = useState(false);
+  const [repeatType, setRepeatType] = useState<RepeatType>(REPEAT_TYPES.NONE);
   const [showPicker, setShowPicker] = useState(false);
+  const [showRepeatOptions, setShowRepeatOptions] = useState(false);
 
   const inputRef = useRef<TextInput>(null);
 
   const handleSubmit = () => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    onAdd({ text: trimmed, time, remind_me: remindMe && !!time });
+    onAdd({
+      text: trimmed,
+      time,
+      remind_me: remindMe && !!time,
+      repeat_type: repeatType,
+    });
     setText("");
     setTime(null);
     setRemindMe(false);
+    setRepeatType(REPEAT_TYPES.NONE);
+    setShowRepeatOptions(false);
     Keyboard.dismiss();
   };
 
@@ -123,6 +138,66 @@ export default function AddTaskForm({ onAdd }: AddTaskFormProps) {
           )}
         </View>
 
+        <View style={styles.repeatSection}>
+          <Text style={styles.repeatSectionTitle}>Repetir</Text>
+
+          <Pressable
+            style={styles.repeatTrigger}
+            onPress={() => setShowRepeatOptions((prev) => !prev)}
+          >
+            <Text style={styles.repeatTriggerText}>
+              {REPEAT_LABELS[repeatType]}
+            </Text>
+            <Text style={styles.repeatChevron}>
+              {showRepeatOptions ? "▲" : "▼"}
+            </Text>
+          </Pressable>
+
+          {showRepeatOptions && (
+            <View style={styles.repeatOptionsBox}>
+              <Pressable
+                key={REPEAT_TYPES.NONE}
+                style={styles.repeatOption}
+                onPress={() => {
+                  setRepeatType(REPEAT_TYPES.NONE);
+                  setShowRepeatOptions(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.repeatOptionText,
+                    repeatType === REPEAT_TYPES.NONE &&
+                      styles.repeatOptionTextActive,
+                  ]}
+                >
+                  {REPEAT_LABELS[REPEAT_TYPES.NONE]}
+                </Text>
+              </Pressable>
+
+              {REPEAT_OPTIONS.map((option) => (
+                <Pressable
+                  key={option.value}
+                  style={styles.repeatOption}
+                  onPress={() => {
+                    setRepeatType(option.value);
+                    setShowRepeatOptions(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.repeatOptionText,
+                      repeatType === option.value &&
+                        styles.repeatOptionTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </View>
+
         {showPicker && Platform.OS === "android" && (
           <DateTimePicker
             value={pickerDate}
@@ -208,6 +283,56 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  repeatSection: {
+    gap: 8,
+  },
+  repeatSectionTitle: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    fontWeight: "600",
+  },
+  repeatTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: COLORS.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  repeatTriggerText: {
+    fontSize: 13,
+    color: COLORS.text,
+    fontWeight: "500",
+  },
+  repeatChevron: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+  },
+  repeatOptionsBox: {
+    backgroundColor: COLORS.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: "hidden",
+  },
+  repeatOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  repeatOptionText: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    fontWeight: "500",
+  },
+  repeatOptionTextActive: {
+    color: COLORS.accent,
+    fontWeight: "700",
   },
   timeBtn: {
     flexDirection: "row",

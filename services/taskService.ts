@@ -1,3 +1,8 @@
+import {
+    type RepeatType,
+    normalizeRepeatType,
+    REPEAT_TYPES,
+} from "../constants/repeat";
 import { supabase } from "../lib/supabase";
 
 export type DateStr = string;
@@ -9,6 +14,7 @@ export interface Task {
   day: DateStr;
   time: string | null;
   remind_me: boolean;
+  repeat_type: RepeatType;
   notification_id: string | null;
   created_at: string;
 }
@@ -17,6 +23,7 @@ export interface NewTaskData {
   text: string;
   time: string | null;
   remind_me: boolean;
+  repeat_type: RepeatType;
 }
 
 export type TasksByDate = Record<DateStr, Task[]>;
@@ -36,7 +43,7 @@ export async function getTasksForDates(dates: DateStr[]): Promise<TasksByDate> {
 
   return (data ?? []).reduce((acc, task) => {
     if (acc[task.day] !== undefined) {
-      acc[task.day].push(task as Task);
+      acc[task.day].push(normalizeTask(task));
     }
     return acc;
   }, grouped);
@@ -62,12 +69,13 @@ export async function addTask(date: DateStr, data: NewTaskData): Promise<Task> {
       done: false,
       time: data.time,
       remind_me: data.remind_me,
+      repeat_type: data.repeat_type,
     })
     .select()
     .single();
 
   if (error) throw error;
-  return saved as Task;
+  return normalizeTask(saved);
 }
 
 export async function updateNotificationId(
@@ -94,7 +102,7 @@ export async function toggleTask(
     .single();
 
   if (error) throw error;
-  return data as Task;
+  return normalizeTask(data);
 }
 
 export async function deleteTask(taskId: string): Promise<void> {
@@ -102,3 +110,22 @@ export async function deleteTask(taskId: string): Promise<void> {
 
   if (error) throw error;
 }
+
+function normalizeTask(task: any): Task {
+  return {
+    ...(task as Task),
+    remind_me: Boolean(task?.remind_me),
+    repeat_type: normalizeRepeatType(task?.repeat_type),
+    time: task?.time ?? null,
+    notification_id: task?.notification_id ?? null,
+    created_at: task?.created_at ?? new Date().toISOString(),
+    done: Boolean(task?.done),
+    day: String(task?.day ?? ""),
+    text: String(task?.text ?? ""),
+    id: String(task?.id ?? ""),
+  };
+}
+
+export { REPEAT_TYPES };
+export type { RepeatType };
+

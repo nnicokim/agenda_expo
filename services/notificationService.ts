@@ -1,5 +1,6 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import { REPEAT_TYPES, type RepeatType } from "../constants/repeat";
 
 // Configurar como se muestran las notificaciones
 export function configureNotifications(): void {
@@ -28,6 +29,7 @@ export async function scheduleNotification(
   title: string,
   date: string,
   time: string,
+  repeatType: RepeatType = REPEAT_TYPES.NONE,
 ): Promise<string | null> {
   const triggerDate = buildDateTime(date, time);
 
@@ -45,6 +47,10 @@ export async function scheduleNotification(
       date: triggerDate,
     },
   });
+
+  // Keep recurrence data in the scheduling API surface so reminder logic can evolve
+  // without changing the callers. Current behavior remains a single reminder.
+  void repeatType;
 
   return id;
 }
@@ -65,9 +71,10 @@ export async function rescheduleNotification(
   title: string,
   date: string,
   time: string,
+  repeatType: RepeatType = REPEAT_TYPES.NONE,
 ): Promise<string | null> {
   await cancelNotification(oldNotificationId);
-  return scheduleNotification(title, date, time);
+  return scheduleNotification(title, date, time, repeatType);
 }
 
 function buildDateTime(date: string, time: string): Date {
