@@ -28,18 +28,41 @@ export function useMarkedDates(): UseMarkedDatesReturn {
   }, []);
 
   async function loadMarkers(): Promise<void> {
-    try {
-      setLoading(true);
-      const dates = await getTaskDates();
+    const hasMarks = Object.keys(markedDates).length > 0;
+    const request = getTaskDates();
 
-      // se convierte el array de fechas al formato que espera la librería
-      const marks: MarkedDates = {};
-      dates.forEach((date) => {
-        marks[date] = {
-          dots: [{ key: "task", color: COLORS.accent }],
-        };
+    try {
+      if (hasMarks) {
+        const dates = await request;
+        setMarkedDates(buildMarks(dates));
+        return;
+      }
+
+      setLoading(true);
+
+      // Si tarda mas de 900ms, se oculta el spinner
+      let didTimeout = false;
+      const timeoutMs = 900;
+      const timeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => {
+          didTimeout = true;
+          resolve(null);
+        }, timeoutMs);
       });
-      setMarkedDates(marks);
+
+      const firstResult = await Promise.race([
+        request.then((dates) => dates as string[] | null),
+        timeoutPromise,
+      ]);
+
+      if (didTimeout || !firstResult) {
+        setLoading(false);
+        const dates = await request;
+        setMarkedDates(buildMarks(dates));
+        return;
+      }
+
+      setMarkedDates(buildMarks(firstResult));
     } catch (err) {
       console.error("Error cargando marcadores:", err);
     } finally {
@@ -48,4 +71,14 @@ export function useMarkedDates(): UseMarkedDatesReturn {
   }
 
   return { markedDates, loading, reload: loadMarkers };
+}
+
+function buildMarks(dates: string[]): MarkedDates {
+  const marks: MarkedDates = {};
+  dates.forEach((date) => {
+    marks[date] = {
+      dots: [{ key: "task", color: COLORS.accent }],
+    };
+  });
+  return marks;
 }

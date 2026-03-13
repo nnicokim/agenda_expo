@@ -1,7 +1,7 @@
 import {
-    type RepeatType,
-    normalizeRepeatType,
-    REPEAT_TYPES,
+  type RepeatType,
+  normalizeRepeatType,
+  REPEAT_TYPES,
 } from "../constants/repeat";
 import { supabase } from "../lib/supabase";
 
@@ -56,11 +56,48 @@ export async function getTasksForDates(dates: DateStr[]): Promise<TasksByDate> {
 //  Lo usa el calendario para mostrar los puntitos de marcación.
 //  Solo trae la columna "day" (más liviano que traer todo).
 export async function getTaskDates(): Promise<DateStr[]> {
+  await ensureMonthlyOccurrencesForCalendarRange();
+
   const { data, error } = await supabase.from(TABLE).select("day");
 
   if (error) throw error;
 
   return [...new Set((data ?? []).map((t) => t.day as DateStr))];
+}
+
+async function ensureMonthlyOccurrencesForCalendarRange(): Promise<void> {
+  const today = new Date();
+  const start = new Date(today);
+  const end = new Date(today);
+
+  end.setMonth(end.getMonth() + 22);
+
+  const dates: DateStr[] = [];
+  const cursor = new Date(
+    start.getFullYear(),
+    start.getMonth(),
+    start.getDate(),
+    12,
+    0,
+    0,
+    0,
+  );
+  const last = new Date(
+    end.getFullYear(),
+    end.getMonth(),
+    end.getDate(),
+    12,
+    0,
+    0,
+    0,
+  );
+
+  while (cursor <= last) {
+    dates.push(toISODateLocal(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  await ensureMonthlyOccurrencesForDates(dates);
 }
 
 export async function addTask(date: DateStr, data: NewTaskData): Promise<Task> {
@@ -156,7 +193,6 @@ async function ensureMonthlyOccurrencesForDates(
     .is("recurrence_parent_id", null)
     .lte("day", maxDate);
 
-  // If SQL migration for recurrence_parent_id wasn't applied yet, avoid breaking app load.
   if (mastersError) {
     if (`${mastersError.message}`.includes("recurrence_parent_id")) {
       return;
@@ -227,6 +263,13 @@ function isMonthlyOccurrenceDay(baseDay: DateStr, targetDay: DateStr): boolean {
     (targetDate.getMonth() - baseDate.getMonth());
 
   return monthsDiff > 0 && baseDate.getDate() === targetDate.getDate();
+}
+
+function toISODateLocal(date: Date): DateStr {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function normalizeTask(task: any): Task {
