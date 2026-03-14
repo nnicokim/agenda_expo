@@ -121,7 +121,6 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
       }));
 
       try {
-        // marca la tarea en la base de datos (por medio de service)
         await taskService.toggleTask(taskId, task.done);
       } catch (err) {
         console.error("Error toggling:", err);
@@ -151,7 +150,11 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
           task?.repeat_type === REPEAT_TYPES.WEEKLY &&
           !task?.recurrence_parent_id;
 
-        if (isMonthlyMaster || isWeeklyMaster) {
+        const isDailyMaster =
+          task?.repeat_type === REPEAT_TYPES.DAILY &&
+          !task?.recurrence_parent_id;
+
+        if (isMonthlyMaster || isWeeklyMaster || isDailyMaster) {
           const notificationIds =
             await taskService.getTaskFamilyNotificationIds(taskId);
           await Promise.all(

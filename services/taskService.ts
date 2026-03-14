@@ -34,7 +34,7 @@ const TABLE = "tasks";
 export async function getTasksForDates(dates: DateStr[]): Promise<TasksByDate> {
   await ensureMonthlyOccurrencesForDates(dates);
   await ensureWeeklyOccurrencesForDates(dates);
-  // await ensureDailyOccurrencesForDates(dates);
+  await ensureDailyOccurrencesForDates(dates);
 
   const { data, error } = await supabase
     .from(TABLE)
@@ -59,7 +59,6 @@ export async function getTasksForDates(dates: DateStr[]): Promise<TasksByDate> {
 //  Solo trae la columna "day" (más liviano que traer todo).
 export async function getTaskDates(): Promise<DateStr[]> {
   await ensureOccurrencesForCalendarRange();
-  // await ensureDailyOccurrencesForCalendarRange(); // TODO: este tambien es generico. sacarlo
 
   const { data, error } = await supabase.from(TABLE).select("day");
 
@@ -103,7 +102,7 @@ async function ensureOccurrencesForCalendarRange(): Promise<void> {
 
   await ensureMonthlyOccurrencesForDates(dates);
   await ensureWeeklyOccurrencesForDates(dates);
-  // await ensureDailyOccurrencesForDates(dates);
+  await ensureDailyOccurrencesForDates(dates);
 }
 
 export async function addTask(date: DateStr, data: NewTaskData): Promise<Task> {
@@ -246,10 +245,7 @@ async function ensureMonthlyOccurrencesForDates(
 
   if (rowsToInsert.length === 0) return;
 
-  const { error: insertError } = await supabase
-    .from(TABLE)
-    .insert(rowsToInsert);
-  if (insertError) throw insertError;
+  await insertRecurrenceRows(rowsToInsert);
 }
 
 function isMonthlyOccurrenceDay(baseDay: DateStr, targetDay: DateStr): boolean {
@@ -333,10 +329,7 @@ async function ensureWeeklyOccurrencesForDates(
 
   if (rowsToInsert.length === 0) return;
 
-  const { error: insertError } = await supabase
-    .from(TABLE)
-    .insert(rowsToInsert);
-  if (insertError) throw insertError;
+  await insertRecurrenceRows(rowsToInsert);
 }
 
 function isWeeklyOccurrenceDay(baseDay: DateStr, targetDay: DateStr): boolean {
@@ -363,6 +356,67 @@ function toISODateLocal(date: Date): DateStr {
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+async function ensureDailyOccurrencesForDates(dates: DateStr[]): Promise<void> {
+  // NO hace falta optimizar con existingKeys porque se chequea por fecha
+  const uniqueDates = [...new Set(dates)].sort();
+  if (uniqueDates.length === 0) return;
+
+  const maxDate = uniqueDates[uniqueDates.length - 1];
+
+  const { data: mastersRaw, error: mastersError } = await supabase
+    .from(TABLE)
+    .select("*")
+    .eq("repeat_type", REPEAT_TYPES.DAILY)
+    .is("recurrence_parent_id", null)
+    .lte("day", maxDate);
+
+  if (mastersError) {
+    if (`${mastersError.message}`.includes("recurrence_parent_id")) {
+      return;
+    }
+    throw mastersError;
+  }
+
+  const masters = (mastersRaw ?? []).map(normalizeTask);
+  if (masters.length === 0) return;
+
+  const rowsToInsert: Array<Record<string, unknown>> = [];
+
+  for (const master of masters) {
+    for (const targetDay of uniqueDates) {
+      if (targetDay <= master.day) continue;
+
+      rowsToInsert.push({
+        text: master.text,
+        day: targetDay,
+        done: false,
+        time: master.time,
+        remind_me: master.remind_me,
+        repeat_type: REPEAT_TYPES.DAILY,
+        recurrence_parent_id: master.id,
+        notification_id: null,
+      });
+    }
+  }
+
+  if (rowsToInsert.length === 0) return;
+
+  await insertRecurrenceRows(rowsToInsert);
+}
+
+async function insertRecurrenceRows(
+  rowsToInsert: Array<Record<string, unknown>>,
+): Promise<void> {
+  if (rowsToInsert.length === 0) return;
+
+  const { error } = await supabase.from(TABLE).insert(rowsToInsert);
+
+  // TODO: mejorar esto con un check específico de constraint violation (23505) para evitar false positives
+  if (error && error.code !== "23505") {
+    throw error;
+  }
 }
 
 function normalizeTask(task: any): Task {
