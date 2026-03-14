@@ -58,9 +58,8 @@ export async function getTasksForDates(dates: DateStr[]): Promise<TasksByDate> {
 //  Lo usa el calendario para mostrar los puntitos de marcación.
 //  Solo trae la columna "day" (más liviano que traer todo).
 export async function getTaskDates(): Promise<DateStr[]> {
-  await ensureMonthlyOccurrencesForCalendarRange();
-  await ensureWeeklyOccurrencesForCalendarRange();
-  // await ensureDailyOccurrencesForCalendarRange();
+  await ensureOccurrencesForCalendarRange();
+  // await ensureDailyOccurrencesForCalendarRange(); // TODO: este tambien es generico. sacarlo
 
   const { data, error } = await supabase.from(TABLE).select("day");
 
@@ -70,7 +69,7 @@ export async function getTaskDates(): Promise<DateStr[]> {
 }
 
 // chequea que existan las tareas repetidas
-async function ensureMonthlyOccurrencesForCalendarRange(): Promise<void> {
+async function ensureOccurrencesForCalendarRange(): Promise<void> {
   const today = new Date();
   const start = new Date(today);
   const end = new Date(today);
@@ -103,42 +102,8 @@ async function ensureMonthlyOccurrencesForCalendarRange(): Promise<void> {
   }
 
   await ensureMonthlyOccurrencesForDates(dates);
-}
-
-// TODO: ver si puedo hacer esta funcion generica para los 3 tipos de repeat
-async function ensureWeeklyOccurrencesForCalendarRange(): Promise<void> {
-  const today = new Date();
-  const start = new Date(today);
-  const end = new Date(today);
-
-  end.setMonth(end.getMonth() + 22);
-
-  const dates: DateStr[] = [];
-  const cursor = new Date(
-    start.getFullYear(),
-    start.getMonth(),
-    start.getDate(),
-    12,
-    0,
-    0,
-    0,
-  );
-  const last = new Date(
-    end.getFullYear(),
-    end.getMonth(),
-    end.getDate(),
-    12,
-    0,
-    0,
-    0,
-  );
-
-  while (cursor <= last) {
-    dates.push(toISODateLocal(cursor));
-    cursor.setDate(cursor.getDate() + 1);
-  }
-
   await ensureWeeklyOccurrencesForDates(dates);
+  // await ensureDailyOccurrencesForDates(dates);
 }
 
 export async function addTask(date: DateStr, data: NewTaskData): Promise<Task> {
