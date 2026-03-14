@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { REPEAT_TYPES } from "../constants/repeat";
 import * as notifService from "../services/notificationService";
 import type {
-    DateStr,
-    NewTaskData,
-    Task,
-    TasksByDate,
+  DateStr,
+  NewTaskData,
+  Task,
+  TasksByDate,
 } from "../services/taskService";
 import * as taskService from "../services/taskService";
 
@@ -147,7 +147,11 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
           task?.repeat_type === REPEAT_TYPES.MONTHLY &&
           !task?.recurrence_parent_id;
 
-        if (isMonthlyMaster) {
+        const isWeeklyMaster =
+          task?.repeat_type === REPEAT_TYPES.WEEKLY &&
+          !task?.recurrence_parent_id;
+
+        if (isMonthlyMaster || isWeeklyMaster) {
           const notificationIds =
             await taskService.getTaskFamilyNotificationIds(taskId);
           await Promise.all(
@@ -155,7 +159,7 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
               notifService.cancelNotification(notificationId),
             ),
           );
-          await taskService.deleteTaskWithMonthlyOccurrences(taskId);
+          await taskService.deleteTaskWithOccurrences(taskId);
         } else {
           // Cancelar notificación si existía
           if (task?.notification_id) {
