@@ -411,12 +411,12 @@ async function insertRecurrenceRows(
 ): Promise<void> {
   if (rowsToInsert.length === 0) return;
 
-  const { error } = await supabase.from(TABLE).insert(rowsToInsert);
+  const { error } = await supabase.from(TABLE).upsert(rowsToInsert, {
+    onConflict: "recurrence_parent_id,day",
+    ignoreDuplicates: true,
+  });
 
-  // TODO: mejorar esto con un check específico de constraint violation (23505) para evitar false positives
-  if (error && error.code !== "23505") {
-    throw error;
-  }
+  if (error) throw error;
 }
 
 function normalizeTask(task: any): Task {
