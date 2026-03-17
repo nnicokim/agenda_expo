@@ -292,7 +292,7 @@ export default function AddTaskForm({
             onPress={onCancelEdit}
             hitSlop={8}
           >
-            <Text style={styles.cancelEditText}>Cancelar edición</Text>
+            <Text style={styles.cancelEditText}>X Cancelar edición</Text>
           </Pressable>
         )}
 
@@ -410,6 +410,8 @@ export default function AddTaskForm({
           )}
         </View>
 
+        <Text style={styles.repeatSectionTitle}>Ubicación</Text>
+
         <Pressable
           style={styles.locationTrigger}
           onPress={() => setShowLocationSection((prev) => !prev)}
@@ -467,6 +469,10 @@ export default function AddTaskForm({
               <Text style={styles.locationError}>{locationError}</Text>
             )}
 
+            <Text style={styles.repeatSectionTitle}>
+              Seleccionar ubicación en el mapa:
+            </Text>
+
             <MapView
               ref={mapRef}
               style={styles.map}
@@ -484,7 +490,7 @@ export default function AddTaskForm({
                 style={styles.clearLocationBtn}
                 onPress={clearLocation}
               >
-                <Text style={styles.clearLocationText}>Quitar ubicación</Text>
+                <Text style={styles.clearLocationText}>X Quitar ubicación</Text>
               </Pressable>
             )}
           </View>
@@ -590,7 +596,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   repeatSectionTitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.textMuted,
     fontWeight: "600",
   },
@@ -703,16 +709,16 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   clearLocationText: {
-    fontSize: 12,
+    fontSize: 15,
     color: COLORS.textMuted,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   timeBtn: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.card,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -735,11 +741,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginLeft: "auto",
-    gap: 6,
+    gap: 5,
   },
   remindBox: {
-    width: 20,
-    height: 20,
+    width: 22,
+    height: 22,
     borderRadius: 5,
     borderWidth: 2,
     borderColor: COLORS.border,
@@ -751,12 +757,12 @@ const styles = StyleSheet.create({
     borderColor: COLORS.accent,
   },
   remindCheck: {
-    fontSize: 11,
+    fontSize: 12,
     color: "#FFF",
     fontWeight: "800",
   },
   remindLabel: {
-    fontSize: 13,
+    fontSize: 15,
     color: COLORS.textMuted,
     fontWeight: "500",
   },
