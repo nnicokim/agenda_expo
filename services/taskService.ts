@@ -30,6 +30,7 @@ export interface NewTaskData {
 export type TasksByDate = Record<DateStr, Task[]>;
 
 const TABLE = "tasks";
+const RECURRENCE_TOMBSTONE_TEXT = "__recurrence_deleted__";
 
 export async function getTasksForDates(dates: DateStr[]): Promise<TasksByDate> {
   await ensureMonthlyOccurrencesForDates(dates);
@@ -48,7 +49,10 @@ export async function getTasksForDates(dates: DateStr[]): Promise<TasksByDate> {
 
   return (data ?? []).reduce((acc, task) => {
     if (acc[task.day] !== undefined) {
-      acc[task.day].push(normalizeTask(task));
+      const normalized = normalizeTask(task);
+      if (normalized.text !== RECURRENCE_TOMBSTONE_TEXT) {
+        acc[task.day].push(normalized);
+      }
     }
     return acc;
   }, grouped);
@@ -60,7 +64,10 @@ export async function getTasksForDates(dates: DateStr[]): Promise<TasksByDate> {
 export async function getTaskDates(): Promise<DateStr[]> {
   await ensureOccurrencesForCalendarRange();
 
-  const { data, error } = await supabase.from(TABLE).select("day");
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select("day")
+    .neq("text", RECURRENCE_TOMBSTONE_TEXT);
 
   if (error) throw error;
 
@@ -153,6 +160,22 @@ export async function toggleTask(
 
 export async function deleteTask(taskId: string): Promise<void> {
   const { error } = await supabase.from(TABLE).delete().eq("id", taskId);
+
+  if (error) throw error;
+}
+
+// solo la marca como borrada, para no perder la info de recurrencia
+// NO se realiza un borrado fisico como las demas tareas
+export async function deleteRecurringOccurrence(taskId: string): Promise<void> {
+  const { error } = await supabase
+    .from(TABLE)
+    .update({
+      text: RECURRENCE_TOMBSTONE_TEXT,
+      done: true,
+      remind_me: false,
+      notification_id: null,
+    })
+    .eq("id", taskId);
 
   if (error) throw error;
 }

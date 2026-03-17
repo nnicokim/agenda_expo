@@ -163,6 +163,11 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
             ),
           );
           await taskService.deleteTaskWithOccurrences(taskId);
+        } else if (task?.recurrence_parent_id) {
+          if (task.notification_id) {
+            await notifService.cancelNotification(task.notification_id);
+          }
+          await taskService.deleteRecurringOccurrence(taskId);
         } else {
           // Cancelar notificación si existía
           if (task?.notification_id) {
