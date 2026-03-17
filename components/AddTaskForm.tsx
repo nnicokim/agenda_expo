@@ -271,7 +271,11 @@ export default function AddTaskForm({
     ? address.trim()
     : latitude != null && longitude != null
       ? `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
-      : "Añadir una ubicación";
+      : "📍 Añadir una ubicación";
+
+  const locationButtonText = showLocationSection
+    ? "No añadir ubicación"
+    : selectedLocationText;
 
   const initialMapRegion = {
     latitude: latitude ?? userLatitude ?? -34.6037,
@@ -416,9 +420,8 @@ export default function AddTaskForm({
           style={styles.locationTrigger}
           onPress={() => setShowLocationSection((prev) => !prev)}
         >
-          <Text style={styles.locationTriggerIcon}>📍</Text>
           <Text style={styles.locationTriggerText} numberOfLines={1}>
-            {selectedLocationText}
+            {locationButtonText}
           </Text>
         </Pressable>
 
@@ -652,9 +655,6 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     paddingHorizontal: 12,
     paddingVertical: 10,
-  },
-  locationTriggerIcon: {
-    fontSize: 14,
   },
   locationTriggerText: {
     flex: 1,
