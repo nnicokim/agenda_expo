@@ -1,11 +1,11 @@
 import { useRef } from "react";
 import {
-  Animated,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
+    Animated,
+    FlatList,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { COLORS } from "../constants/colors";
 import type { Task } from "../services/taskService";
@@ -15,15 +15,17 @@ interface TaskListProps {
   tasks: Task[];
   onToggle: (taskId: string) => void;
   onDelete: (taskId: string) => void;
+  onPressTask: (task: Task) => void;
 }
 
 interface TaskItemProps {
   task: Task;
   onToggle: (taskId: string) => void;
   onDelete: (taskId: string) => void;
+  onPressTask: (task: Task) => void;
 }
 
-function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
+function TaskItem({ task, onToggle, onDelete, onPressTask }: TaskItemProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handleToggle = () => {
@@ -54,7 +56,7 @@ function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
         {task.done && <Text style={styles.checkmark}>✓</Text>}
       </Pressable>
 
-      <View style={styles.taskContent}>
+      <Pressable style={styles.taskContent} onPress={() => onPressTask(task)}>
         <Text
           style={[styles.taskText, task.done && styles.taskTextDone]}
           numberOfLines={2}
@@ -67,7 +69,7 @@ function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
             {task.remind_me && <Text style={styles.bellIcon}>🔔</Text>}
           </View>
         )}
-      </View>
+      </Pressable>
 
       <Pressable
         style={styles.deleteBtn}
@@ -80,7 +82,12 @@ function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
   );
 }
 
-export default function TaskList({ tasks, onToggle, onDelete }: TaskListProps) {
+export default function TaskList({
+  tasks,
+  onToggle,
+  onDelete,
+  onPressTask,
+}: TaskListProps) {
   if (tasks.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -96,7 +103,12 @@ export default function TaskList({ tasks, onToggle, onDelete }: TaskListProps) {
       data={tasks}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
-        <TaskItem task={item} onToggle={onToggle} onDelete={onDelete} />
+        <TaskItem
+          task={item}
+          onToggle={onToggle}
+          onDelete={onDelete}
+          onPressTask={onPressTask}
+        />
       )}
       ItemSeparatorComponent={() => <View style={styles.separator} />}
       contentContainerStyle={styles.listContent}

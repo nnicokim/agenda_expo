@@ -6,6 +6,7 @@ import type {
   NewTaskData,
   Task,
   TasksByDate,
+  UpdateTaskData,
 } from "../services/taskService";
 import * as taskService from "../services/taskService";
 
@@ -14,6 +15,11 @@ interface UseTasksReturn {
   loading: boolean;
   error: string | null;
   addTask: (date: DateStr, data: NewTaskData) => Promise<void>;
+  editTask: (
+    date: DateStr,
+    taskId: string,
+    data: UpdateTaskData,
+  ) => Promise<void>;
   toggleTask: (date: DateStr, taskId: string) => Promise<void>;
   deleteTask: (date: DateStr, taskId: string) => Promise<void>;
   clearError: () => void;
@@ -131,6 +137,78 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
     [tasksByDate],
   );
 
+  const editTask = useCallback(
+    async (
+      date: DateStr,
+      taskId: string,
+      data: UpdateTaskData,
+    ): Promise<void> => {
+      const prev = tasksByDate[date] ?? [];
+      const task = prev.find((t) => t.id === taskId);
+      if (!task) return;
+
+      const optimistic: Task = {
+        ...task,
+        text: data.text,
+        time: data.time,
+        remind_me: data.remind_me,
+        repeat_type: data.repeat_type,
+      };
+
+      setTasksByDate((s) => ({
+        ...s,
+        [date]: s[date].map((t) => (t.id === taskId ? optimistic : t)),
+      }));
+
+      try {
+        const saved = await taskService.updateTask(taskId, data);
+        let notificationId: string | null = saved.notification_id;
+
+        const shouldHaveReminder = saved.remind_me && !!saved.time;
+        if (!shouldHaveReminder) {
+          if (task.notification_id) {
+            await notifService.cancelNotification(task.notification_id);
+          }
+          notificationId = null;
+          await taskService.updateNotificationId(saved.id, null);
+        } else {
+          const granted = await notifService.requestPermissions();
+          if (granted && saved.time) {
+            if (task.notification_id) {
+              notificationId = await notifService.rescheduleNotification(
+                task.notification_id,
+                saved.text,
+                saved.day,
+                saved.time,
+                saved.repeat_type,
+              );
+            } else {
+              notificationId = await notifService.scheduleNotification(
+                saved.text,
+                saved.day,
+                saved.time,
+                saved.repeat_type,
+              );
+            }
+            await taskService.updateNotificationId(saved.id, notificationId);
+          }
+        }
+
+        setTasksByDate((s) => ({
+          ...s,
+          [date]: s[date].map((t) =>
+            t.id === taskId ? { ...saved, notification_id: notificationId } : t,
+          ),
+        }));
+      } catch (err) {
+        console.error("Error editando:", err);
+        setTasksByDate((s) => ({ ...s, [date]: prev }));
+        setError("No se pudo editar la tarea.");
+      }
+    },
+    [tasksByDate],
+  );
+
   const deleteTask = useCallback(
     async (date: DateStr, taskId: string): Promise<void> => {
       const prev = tasksByDate[date] ?? [];
@@ -191,6 +269,7 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
     loading,
     error,
     addTask,
+    editTask,
     toggleTask,
     deleteTask,
     clearError,

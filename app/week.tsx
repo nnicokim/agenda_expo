@@ -1,12 +1,12 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -15,7 +15,7 @@ import DaySelector from "../components/DaySelector";
 import TaskList from "../components/TaskList";
 import { COLORS } from "../constants/colors";
 import { useTasks } from "../hooks/useTasks";
-import type { NewTaskData } from "../services/taskService";
+import type { NewTaskData, Task } from "../services/taskService";
 import { getMonthLabel, getWeekDates, todayISO } from "../utils/dateUtils";
 
 export default function WeekScreen() {
@@ -25,6 +25,7 @@ export default function WeekScreen() {
   const weekDates = getWeekDates(initialDate); // lo que recibe el hook
 
   const [selectedDate, setSelectedDate] = useState<string>(initialDate);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   // el objeto que retorna el hook useTasks, entre {}
   const {
@@ -32,6 +33,7 @@ export default function WeekScreen() {
     loading,
     error,
     addTask,
+    editTask,
     toggleTask,
     deleteTask,
     clearError,
@@ -44,9 +46,21 @@ export default function WeekScreen() {
   }, [error]);
 
   // Handlers: inyectan la fecha seleccionada
-  const handleAdd = (data: NewTaskData) => addTask(selectedDate, data);
+  const handleAdd = async (data: NewTaskData) => {
+    if (editingTask) {
+      await editTask(selectedDate, editingTask.id, data);
+      setEditingTask(null);
+      return;
+    }
+    await addTask(selectedDate, data);
+  };
   const handleToggle = (taskId: string) => toggleTask(selectedDate, taskId);
   const handleDelete = (taskId: string) => deleteTask(selectedDate, taskId);
+  const handlePressTask = (task: Task) => setEditingTask(task);
+
+  useEffect(() => {
+    setEditingTask(null);
+  }, [selectedDate]);
 
   const todayTasks = tasksByDate[selectedDate] ?? [];
   const pending = todayTasks.filter((t) => !t.done).length;
@@ -95,9 +109,14 @@ export default function WeekScreen() {
         tasks={todayTasks}
         onToggle={handleToggle}
         onDelete={handleDelete}
+        onPressTask={handlePressTask}
       />
 
-      <AddTaskForm onAdd={handleAdd} />
+      <AddTaskForm
+        onSubmit={handleAdd}
+        editingTask={editingTask}
+        onCancelEdit={() => setEditingTask(null)}
+      />
     </SafeAreaView>
   );
 }

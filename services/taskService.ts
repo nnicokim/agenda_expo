@@ -27,6 +27,13 @@ export interface NewTaskData {
   repeat_type: RepeatType;
 }
 
+export interface UpdateTaskData {
+  text: string;
+  time: string | null;
+  remind_me: boolean;
+  repeat_type: RepeatType;
+}
+
 export type TasksByDate = Record<DateStr, Task[]>;
 
 const TABLE = "tasks";
@@ -156,6 +163,26 @@ export async function toggleTask(
 
   if (error) throw error;
   return normalizeTask(data);
+}
+
+export async function updateTask(
+  taskId: string,
+  data: UpdateTaskData,
+): Promise<Task> {
+  const { data: saved, error } = await supabase
+    .from(TABLE)
+    .update({
+      text: data.text,
+      time: data.time,
+      remind_me: data.remind_me,
+      repeat_type: data.repeat_type,
+    })
+    .eq("id", taskId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return normalizeTask(saved);
 }
 
 export async function deleteTask(taskId: string): Promise<void> {

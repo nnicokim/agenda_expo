@@ -1,5 +1,5 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     Keyboard,
     KeyboardAvoidingView,
@@ -18,14 +18,20 @@ import {
     REPEAT_TYPES,
     type RepeatType,
 } from "../constants/repeat";
-import type { NewTaskData } from "../services/taskService";
+import type { NewTaskData, Task } from "../services/taskService";
 import { formatTime } from "../utils/dateUtils";
 
 interface AddTaskFormProps {
-  onAdd: (data: NewTaskData) => void;
+  onSubmit: (data: NewTaskData) => void;
+  editingTask?: Task | null;
+  onCancelEdit?: () => void;
 }
 
-export default function AddTaskForm({ onAdd }: AddTaskFormProps) {
+export default function AddTaskForm({
+  onSubmit,
+  editingTask = null,
+  onCancelEdit,
+}: AddTaskFormProps) {
   const [text, setText] = useState("");
   const [time, setTime] = useState<string | null>(null);
   const [remindMe, setRemindMe] = useState(false);
@@ -35,10 +41,26 @@ export default function AddTaskForm({ onAdd }: AddTaskFormProps) {
 
   const inputRef = useRef<TextInput>(null);
 
+  useEffect(() => {
+    if (editingTask) {
+      setText(editingTask.text);
+      setTime(editingTask.time);
+      setRemindMe(Boolean(editingTask.remind_me && editingTask.time));
+      setRepeatType(editingTask.repeat_type ?? REPEAT_TYPES.NONE);
+      return;
+    }
+
+    setText("");
+    setTime(null);
+    setRemindMe(false);
+    setRepeatType(REPEAT_TYPES.NONE);
+    setShowRepeatOptions(false);
+  }, [editingTask?.id]);
+
   const handleSubmit = () => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    onAdd({
+    onSubmit({
       text: trimmed,
       time,
       remind_me: remindMe && !!time,
@@ -90,7 +112,7 @@ export default function AddTaskForm({ onAdd }: AddTaskFormProps) {
             style={styles.input}
             value={text}
             onChangeText={setText}
-            placeholder="Nueva tarea..."
+            placeholder={editingTask ? "Editar tarea..." : "Nueva tarea..."}
             placeholderTextColor={COLORS.textMuted}
             returnKeyType="done"
             onSubmitEditing={handleSubmit}
@@ -105,9 +127,19 @@ export default function AddTaskForm({ onAdd }: AddTaskFormProps) {
             onPress={handleSubmit}
             disabled={isDisabled}
           >
-            <Text style={styles.addBtnText}>+</Text>
+            <Text style={styles.addBtnText}>✓</Text>
           </Pressable>
         </View>
+
+        {editingTask && (
+          <Pressable
+            style={styles.cancelEditBtn}
+            onPress={onCancelEdit}
+            hitSlop={8}
+          >
+            <Text style={styles.cancelEditText}>Cancelar edición</Text>
+          </Pressable>
+        )}
 
         <View style={styles.optionsRow}>
           <Pressable style={styles.timeBtn} onPress={() => setShowPicker(true)}>
@@ -274,10 +306,20 @@ const styles = StyleSheet.create({
   },
   addBtnDisabled: { backgroundColor: COLORS.border },
   addBtnText: {
-    fontSize: 26,
+    fontSize: 24,
     color: "#FFF",
-    fontWeight: "300",
-    lineHeight: 30,
+    fontWeight: "700",
+    lineHeight: 26,
+  },
+  cancelEditBtn: {
+    alignSelf: "flex-end",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  cancelEditText: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    fontWeight: "600",
   },
   optionsRow: {
     flexDirection: "row",
