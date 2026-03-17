@@ -1,22 +1,22 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useEffect, useRef, useState } from "react";
 import {
-    Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { COLORS } from "../constants/colors";
 import {
-    REPEAT_LABELS,
-    REPEAT_OPTIONS,
-    REPEAT_TYPES,
-    type RepeatType,
+  REPEAT_LABELS,
+  REPEAT_OPTIONS,
+  REPEAT_TYPES,
+  type RepeatType,
 } from "../constants/repeat";
 import type { NewTaskData, Task } from "../services/taskService";
 import { formatTime } from "../utils/dateUtils";
@@ -106,6 +106,16 @@ export default function AddTaskForm({
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
       <View style={styles.container}>
+        {editingTask && (
+          <Pressable
+            style={styles.cancelEditBtn}
+            onPress={onCancelEdit}
+            hitSlop={8}
+          >
+            <Text style={styles.cancelEditText}>Cancelar edición</Text>
+          </Pressable>
+        )}
+
         <View style={styles.mainRow}>
           <TextInput
             ref={inputRef}
@@ -130,16 +140,6 @@ export default function AddTaskForm({
             <Text style={styles.addBtnText}>✓</Text>
           </Pressable>
         </View>
-
-        {editingTask && (
-          <Pressable
-            style={styles.cancelEditBtn}
-            onPress={onCancelEdit}
-            hitSlop={8}
-          >
-            <Text style={styles.cancelEditText}>Cancelar edición</Text>
-          </Pressable>
-        )}
 
         <View style={styles.optionsRow}>
           <Pressable style={styles.timeBtn} onPress={() => setShowPicker(true)}>
@@ -318,8 +318,8 @@ const styles = StyleSheet.create({
   },
   cancelEditText: {
     color: COLORS.textMuted,
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 15,
+    fontWeight: "700",
   },
   optionsRow: {
     flexDirection: "row",
