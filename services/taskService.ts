@@ -1,7 +1,7 @@
 import {
-  type RepeatType,
-  normalizeRepeatType,
-  REPEAT_TYPES,
+    type RepeatType,
+    normalizeRepeatType,
+    REPEAT_TYPES,
 } from "../constants/repeat";
 import { supabase } from "../lib/supabase";
 
@@ -15,6 +15,10 @@ export interface Task {
   time: string | null;
   remind_me: boolean;
   repeat_type: RepeatType;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  place_id: string | null;
   recurrence_parent_id: string | null;
   notification_id: string | null;
   created_at: string;
@@ -25,6 +29,10 @@ export interface NewTaskData {
   time: string | null;
   remind_me: boolean;
   repeat_type: RepeatType;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  place_id: string | null;
 }
 
 export interface UpdateTaskData {
@@ -32,6 +40,10 @@ export interface UpdateTaskData {
   time: string | null;
   remind_me: boolean;
   repeat_type: RepeatType;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  place_id: string | null;
 }
 
 export type TasksByDate = Record<DateStr, Task[]>;
@@ -129,6 +141,10 @@ export async function addTask(date: DateStr, data: NewTaskData): Promise<Task> {
       time: data.time,
       remind_me: data.remind_me,
       repeat_type: data.repeat_type,
+      address: data.address,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      place_id: data.place_id,
       recurrence_parent_id: null,
     })
     .select()
@@ -176,6 +192,10 @@ export async function updateTask(
       time: data.time,
       remind_me: data.remind_me,
       repeat_type: data.repeat_type,
+      address: data.address,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      place_id: data.place_id,
     })
     .eq("id", taskId)
     .select()
@@ -287,6 +307,10 @@ async function ensureMonthlyOccurrencesForDates(
         time: master.time,
         remind_me: master.remind_me,
         repeat_type: REPEAT_TYPES.MONTHLY,
+        address: master.address,
+        latitude: master.latitude,
+        longitude: master.longitude,
+        place_id: master.place_id,
         recurrence_parent_id: master.id,
         notification_id: null,
       });
@@ -371,6 +395,10 @@ async function ensureWeeklyOccurrencesForDates(
         time: master.time,
         remind_me: master.remind_me,
         repeat_type: REPEAT_TYPES.WEEKLY,
+        address: master.address,
+        latitude: master.latitude,
+        longitude: master.longitude,
+        place_id: master.place_id,
         recurrence_parent_id: master.id,
         notification_id: null,
       });
@@ -445,6 +473,10 @@ async function ensureDailyOccurrencesForDates(dates: DateStr[]): Promise<void> {
         time: master.time,
         remind_me: master.remind_me,
         repeat_type: REPEAT_TYPES.DAILY,
+        address: master.address,
+        latitude: master.latitude,
+        longitude: master.longitude,
+        place_id: master.place_id,
         recurrence_parent_id: master.id,
         notification_id: null,
       });
@@ -474,6 +506,20 @@ function normalizeTask(task: any): Task {
     ...(task as Task),
     remind_me: Boolean(task?.remind_me),
     repeat_type: normalizeRepeatType(task?.repeat_type),
+    address: task?.address ?? null,
+    latitude:
+      typeof task?.latitude === "number"
+        ? task.latitude
+        : task?.latitude == null
+          ? null
+          : Number(task.latitude),
+    longitude:
+      typeof task?.longitude === "number"
+        ? task.longitude
+        : task?.longitude == null
+          ? null
+          : Number(task.longitude),
+    place_id: task?.place_id ?? null,
     recurrence_parent_id: task?.recurrence_parent_id ?? null,
     time: task?.time ?? null,
     notification_id: task?.notification_id ?? null,

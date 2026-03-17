@@ -1,4 +1,5 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as Location from "expo-location";
 import { useEffect, useRef, useState } from "react";
 import {
   Keyboard,
@@ -11,6 +12,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import MapView, { Marker, type MapPressEvent } from "react-native-maps";
 import { COLORS } from "../constants/colors";
 import {
   REPEAT_LABELS,
@@ -18,11 +20,19 @@ import {
   REPEAT_TYPES,
   type RepeatType,
 } from "../constants/repeat";
+import {
+  fetchAddressSuggestions,
+  fetchPlaceDetails,
+  hasGoogleMapsApiKey,
+  requestForegroundLocationPermission,
+  reverseGeocodeToAddress,
+  type PlaceSuggestion,
+} from "../services/locationService";
 import type { NewTaskData, Task } from "../services/taskService";
 import { formatTime } from "../utils/dateUtils";
 
 interface AddTaskFormProps {
-  onSubmit: (data: NewTaskData) => void;
+  onSubmit: (data: NewTaskData) => Promise<void> | void;
   editingTask?: Task | null;
   onCancelEdit?: () => void;
 }
@@ -38,8 +48,21 @@ export default function AddTaskForm({
   const [repeatType, setRepeatType] = useState<RepeatType>(REPEAT_TYPES.NONE);
   const [showPicker, setShowPicker] = useState(false);
   const [showRepeatOptions, setShowRepeatOptions] = useState(false);
+  const [showLocationSection, setShowLocationSection] = useState(false);
+  const [address, setAddress] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [placeId, setPlaceId] = useState<string | null>(null);
+  const [userLatitude, setUserLatitude] = useState<number | null>(null);
+  const [userLongitude, setUserLongitude] = useState<number | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const inputRef = useRef<TextInput>(null);
+  const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
     if (editingTask) {
@@ -47,6 +70,16 @@ export default function AddTaskForm({
       setTime(editingTask.time);
       setRemindMe(Boolean(editingTask.remind_me && editingTask.time));
       setRepeatType(editingTask.repeat_type ?? REPEAT_TYPES.NONE);
+      setAddress(editingTask.address ?? "");
+      setLatitude(editingTask.latitude ?? null);
+      setLongitude(editingTask.longitude ?? null);
+      setPlaceId(editingTask.place_id ?? null);
+      setShowLocationSection(
+        Boolean(
+          editingTask.address ||
+          (editingTask.latitude != null && editingTask.longitude != null),
+        ),
+      );
       return;
     }
 
@@ -54,24 +87,113 @@ export default function AddTaskForm({
     setTime(null);
     setRemindMe(false);
     setRepeatType(REPEAT_TYPES.NONE);
+    setAddress("");
+    setLatitude(null);
+    setLongitude(null);
+    setPlaceId(null);
+    setShowLocationSection(false);
     setShowRepeatOptions(false);
   }, [editingTask?.id]);
 
-  const handleSubmit = () => {
+  useEffect(() => {
+    let isMounted = true;
+    let watcher: Location.LocationSubscription | null = null;
+
+    async function startWatchingLocation() {
+      if (!showLocationSection) return;
+
+      const granted = await requestForegroundLocationPermission();
+      if (!granted) {
+        if (isMounted) {
+          setLocationError("Permiso de ubicación denegado");
+        }
+        return;
+      }
+
+      try {
+        const current = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+
+        if (isMounted) {
+          setUserLatitude(current.coords.latitude);
+          setUserLongitude(current.coords.longitude);
+          setLocationError(null);
+        }
+
+        watcher = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.Balanced,
+            distanceInterval: 10,
+            timeInterval: 7000,
+          },
+          (position) => {
+            setUserLatitude(position.coords.latitude);
+            setUserLongitude(position.coords.longitude);
+          },
+        );
+      } catch {
+        if (isMounted) {
+          setLocationError("No se pudo obtener la ubicación actual");
+        }
+      }
+    }
+
+    startWatchingLocation();
+
+    return () => {
+      isMounted = false;
+      if (watcher) watcher.remove();
+    };
+  }, [showLocationSection]);
+
+  useEffect(() => {
+    if (!showLocationSection || !showSuggestions) return;
+    const query = address.trim();
+    if (query.length < 3 || !hasGoogleMapsApiKey()) {
+      setSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsFetchingSuggestions(true);
+      const nextSuggestions = await fetchAddressSuggestions(query);
+      setSuggestions(nextSuggestions);
+      setIsFetchingSuggestions(false);
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [address, showLocationSection, showSuggestions]);
+
+  const handleSubmit = async () => {
     const trimmed = text.trim();
-    if (!trimmed) return;
-    onSubmit({
-      text: trimmed,
-      time,
-      remind_me: remindMe && !!time,
-      repeat_type: repeatType,
-    });
-    setText("");
-    setTime(null);
-    setRemindMe(false);
-    setRepeatType(REPEAT_TYPES.NONE);
-    setShowRepeatOptions(false);
-    Keyboard.dismiss();
+    if (!trimmed || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onSubmit({
+        text: trimmed,
+        time,
+        remind_me: remindMe && !!time,
+        repeat_type: repeatType,
+        address: address.trim() || null,
+        latitude,
+        longitude,
+        place_id: placeId,
+      });
+      setText("");
+      setTime(null);
+      setRemindMe(false);
+      setRepeatType(REPEAT_TYPES.NONE);
+      setAddress("");
+      setLatitude(null);
+      setLongitude(null);
+      setPlaceId(null);
+      setShowLocationSection(false);
+      setShowRepeatOptions(false);
+      Keyboard.dismiss();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleTimeChange = (_: any, selected?: Date) => {
@@ -88,6 +210,51 @@ export default function AddTaskForm({
     setRemindMe(false);
   };
 
+  const handleMapPress = async (event: MapPressEvent) => {
+    const { latitude: lat, longitude: lng } = event.nativeEvent.coordinate;
+    setLatitude(lat);
+    setLongitude(lng);
+    setPlaceId(null);
+
+    const resolved = await reverseGeocodeToAddress(lat, lng);
+    if (resolved) {
+      setAddress(resolved);
+    }
+    setShowSuggestions(false);
+    setSuggestions([]);
+  };
+
+  const handleSelectSuggestion = async (suggestion: PlaceSuggestion) => {
+    const details = await fetchPlaceDetails(suggestion.placeId);
+    if (!details) return;
+
+    setAddress(details.address || suggestion.description);
+    setLatitude(details.latitude);
+    setLongitude(details.longitude);
+    setPlaceId(details.placeId);
+    setShowSuggestions(false);
+    setSuggestions([]);
+
+    mapRef.current?.animateToRegion(
+      {
+        latitude: details.latitude,
+        longitude: details.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      },
+      400,
+    );
+  };
+
+  const clearLocation = () => {
+    setAddress("");
+    setLatitude(null);
+    setLongitude(null);
+    setPlaceId(null);
+    setShowSuggestions(false);
+    setSuggestions([]);
+  };
+
   const isDisabled = !text.trim();
 
   // Valor inicial del picker: la hora seleccionada o ahora
@@ -99,6 +266,19 @@ export default function AddTaskForm({
     }
     return d;
   })();
+
+  const selectedLocationText = address.trim()
+    ? address.trim()
+    : latitude != null && longitude != null
+      ? `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
+      : "Añadir una ubicación";
+
+  const initialMapRegion = {
+    latitude: latitude ?? userLatitude ?? -34.6037,
+    longitude: longitude ?? userLongitude ?? -58.3816,
+    latitudeDelta: 0.02,
+    longitudeDelta: 0.02,
+  };
 
   return (
     <KeyboardAvoidingView
@@ -135,7 +315,7 @@ export default function AddTaskForm({
               isDisabled && styles.addBtnDisabled,
             ]}
             onPress={handleSubmit}
-            disabled={isDisabled}
+            disabled={isDisabled || isSubmitting}
           >
             <Text style={styles.addBtnText}>✓</Text>
           </Pressable>
@@ -229,6 +409,86 @@ export default function AddTaskForm({
             </View>
           )}
         </View>
+
+        <Pressable
+          style={styles.locationTrigger}
+          onPress={() => setShowLocationSection((prev) => !prev)}
+        >
+          <Text style={styles.locationTriggerIcon}>📍</Text>
+          <Text style={styles.locationTriggerText} numberOfLines={1}>
+            {selectedLocationText}
+          </Text>
+        </Pressable>
+
+        {showLocationSection && (
+          <View style={styles.locationSection}>
+            <TextInput
+              style={styles.addressInput}
+              value={address}
+              onChangeText={(value) => {
+                setAddress(value);
+                setShowSuggestions(true);
+                if (!value.trim()) {
+                  setPlaceId(null);
+                  setSuggestions([]);
+                }
+              }}
+              placeholder="Buscar o escribir dirección"
+              placeholderTextColor={COLORS.textMuted}
+            />
+
+            {!hasGoogleMapsApiKey() && (
+              <Text style={styles.locationHint}>
+                Configurá EXPO_PUBLIC_GOOGLE_MAPS_API_KEY para sugerencias.
+              </Text>
+            )}
+
+            {isFetchingSuggestions && showSuggestions && (
+              <Text style={styles.locationHint}>Buscando direcciones...</Text>
+            )}
+
+            {showSuggestions && suggestions.length > 0 && (
+              <View style={styles.suggestionsBox}>
+                {suggestions.map((suggestion) => (
+                  <Pressable
+                    key={suggestion.placeId}
+                    style={styles.suggestionItem}
+                    onPress={() => handleSelectSuggestion(suggestion)}
+                  >
+                    <Text style={styles.suggestionText}>
+                      {suggestion.description}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+
+            {locationError && (
+              <Text style={styles.locationError}>{locationError}</Text>
+            )}
+
+            <MapView
+              ref={mapRef}
+              style={styles.map}
+              initialRegion={initialMapRegion}
+              showsUserLocation
+              onPress={handleMapPress}
+            >
+              {latitude != null && longitude != null && (
+                <Marker coordinate={{ latitude, longitude }} />
+              )}
+            </MapView>
+
+            {(address || (latitude != null && longitude != null)) && (
+              <Pressable
+                style={styles.clearLocationBtn}
+                onPress={clearLocation}
+              >
+                <Text style={styles.clearLocationText}>Quitar ubicación</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
 
         {showPicker && Platform.OS === "android" && (
           <DateTimePicker
@@ -375,6 +635,77 @@ const styles = StyleSheet.create({
   repeatOptionTextActive: {
     color: COLORS.accent,
     fontWeight: "700",
+  },
+  locationTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: COLORS.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  locationTriggerIcon: {
+    fontSize: 14,
+  },
+  locationTriggerText: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.text,
+    fontWeight: "500",
+  },
+  locationSection: {
+    gap: 8,
+  },
+  addressInput: {
+    backgroundColor: COLORS.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: COLORS.text,
+    fontSize: 13,
+  },
+  suggestionsBox: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+    overflow: "hidden",
+  },
+  suggestionItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  suggestionText: {
+    fontSize: 13,
+    color: COLORS.text,
+  },
+  locationHint: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+  },
+  locationError: {
+    fontSize: 11,
+    color: "#B23A3A",
+  },
+  map: {
+    height: 180,
+    borderRadius: 12,
+  },
+  clearLocationBtn: {
+    alignSelf: "flex-end",
+    paddingVertical: 4,
+  },
+  clearLocationText: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    fontWeight: "600",
   },
   timeBtn: {
     flexDirection: "row",

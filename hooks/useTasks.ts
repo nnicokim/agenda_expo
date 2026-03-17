@@ -2,11 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { REPEAT_TYPES } from "../constants/repeat";
 import * as notifService from "../services/notificationService";
 import type {
-  DateStr,
-  NewTaskData,
-  Task,
-  TasksByDate,
-  UpdateTaskData,
+    DateStr,
+    NewTaskData,
+    Task,
+    TasksByDate,
+    UpdateTaskData,
 } from "../services/taskService";
 import * as taskService from "../services/taskService";
 
@@ -60,6 +60,10 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
         time: data.time,
         remind_me: data.remind_me,
         repeat_type: data.repeat_type ?? REPEAT_TYPES.NONE,
+        address: data.address,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        place_id: data.place_id,
         recurrence_parent_id: null,
         notification_id: null,
         created_at: new Date().toISOString(),
@@ -153,6 +157,10 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
         time: data.time,
         remind_me: data.remind_me,
         repeat_type: data.repeat_type,
+        address: data.address,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        place_id: data.place_id,
       };
 
       setTasksByDate((s) => ({

@@ -1,11 +1,11 @@
 import { useRef } from "react";
 import {
-    Animated,
-    FlatList,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
+  Animated,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { COLORS } from "../constants/colors";
 import type { Task } from "../services/taskService";
@@ -68,6 +68,11 @@ function TaskItem({ task, onToggle, onDelete, onPressTask }: TaskItemProps) {
             <Text style={styles.timeLabel}>{formatTime(task.time)}</Text>
             {task.remind_me && <Text style={styles.bellIcon}>🔔</Text>}
           </View>
+        )}
+        {task.address && (
+          <Text style={styles.addressLabel} numberOfLines={1}>
+            📍 {task.address}
+          </Text>
         )}
       </Pressable>
 
@@ -179,6 +184,10 @@ const styles = StyleSheet.create({
   },
   bellIcon: {
     fontSize: 10,
+  },
+  addressLabel: {
+    fontSize: 11,
+    color: COLORS.textMuted,
   },
   deleteBtn: { marginLeft: 8, padding: 4 },
   deleteBtnText: { fontSize: 14, color: COLORS.textMuted },

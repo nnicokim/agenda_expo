@@ -40,7 +40,13 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Usamos tu ubicación para mostrar tu posición en el mapa y ayudarte a elegir direcciones para tus tareas."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
