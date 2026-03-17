@@ -290,13 +290,15 @@ export default function AddTaskForm({
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
       <View style={styles.container}>
-        {editingTask && (
+        {onCancelEdit && (
           <Pressable
             style={styles.cancelEditBtn}
             onPress={onCancelEdit}
             hitSlop={8}
           >
-            <Text style={styles.cancelEditText}>X Cancelar edición</Text>
+            <Text style={styles.cancelEditText}>
+              {editingTask ? "X Cancelar edición" : "X Cancelar"}
+            </Text>
           </Pressable>
         )}
 

@@ -26,6 +26,7 @@ export default function WeekScreen() {
 
   const [selectedDate, setSelectedDate] = useState<string>(initialDate);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [showAddTaskForm, setShowAddTaskForm] = useState(false);
 
   // el objeto que retorna el hook useTasks, entre {}
   const {
@@ -50,16 +51,22 @@ export default function WeekScreen() {
     if (editingTask) {
       await editTask(selectedDate, editingTask.id, data);
       setEditingTask(null);
+      setShowAddTaskForm(false);
       return;
     }
     await addTask(selectedDate, data);
+    setShowAddTaskForm(false);
   };
   const handleToggle = (taskId: string) => toggleTask(selectedDate, taskId);
   const handleDelete = (taskId: string) => deleteTask(selectedDate, taskId);
-  const handlePressTask = (task: Task) => setEditingTask(task);
+  const handlePressTask = (task: Task) => {
+    setEditingTask(task);
+    setShowAddTaskForm(true);
+  };
 
   useEffect(() => {
     setEditingTask(null);
+    setShowAddTaskForm(false);
   }, [selectedDate]);
 
   const todayTasks = tasksByDate[selectedDate] ?? [];
@@ -105,6 +112,20 @@ export default function WeekScreen() {
         tasksByDate={tasksByDate}
       />
 
+      {!showAddTaskForm && (
+        <View style={styles.addToggleRow}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.addToggleButton,
+              pressed && styles.addToggleButtonPressed,
+            ]}
+            onPress={() => setShowAddTaskForm(true)}
+          >
+            <Text style={styles.addToggleButtonText}>+</Text>
+          </Pressable>
+        </View>
+      )}
+
       <TaskList
         tasks={todayTasks}
         onToggle={handleToggle}
@@ -112,11 +133,16 @@ export default function WeekScreen() {
         onPressTask={handlePressTask}
       />
 
-      <AddTaskForm
-        onSubmit={handleAdd}
-        editingTask={editingTask}
-        onCancelEdit={() => setEditingTask(null)}
-      />
+      {showAddTaskForm && (
+        <AddTaskForm
+          onSubmit={handleAdd}
+          editingTask={editingTask}
+          onCancelEdit={() => {
+            setEditingTask(null);
+            setShowAddTaskForm(false);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -162,5 +188,29 @@ const styles = StyleSheet.create({
   pendingLabel: {
     fontSize: 14,
     color: COLORS.textMuted,
+  },
+  addToggleRow: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 4,
+    alignItems: "flex-end",
+  },
+  addToggleButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: COLORS.accent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addToggleButtonPressed: {
+    backgroundColor: COLORS.accentSoft,
+    transform: [{ scale: 0.96 }],
+  },
+  addToggleButtonText: {
+    color: "#FFF",
+    fontSize: 28,
+    lineHeight: 30,
+    fontWeight: "300",
   },
 });

@@ -98,7 +98,7 @@ export default function TaskList({
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyIcon}>🌿</Text>
         <Text style={styles.emptyText}>Día libre</Text>
-        <Text style={styles.emptySubtext}>Agregá una tarea abajo</Text>
+        <Text style={styles.emptySubtext}>No hay tareas hasta el momento</Text>
       </View>
     );
   }
