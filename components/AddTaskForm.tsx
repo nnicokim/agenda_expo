@@ -1,6 +1,6 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Location from "expo-location";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import MapView, { Marker, type MapPressEvent } from "react-native-maps";
-import { COLORS } from "../constants/colors";
+import type { CalendarPalette } from "../constants/calendarTheme";
 import {
   REPEAT_LABELS,
   REPEAT_OPTIONS,
@@ -33,15 +33,18 @@ import { formatTime } from "../utils/dateUtils";
 
 interface AddTaskFormProps {
   onSubmit: (data: NewTaskData) => Promise<void> | void;
+  themeColors: CalendarPalette;
   editingTask?: Task | null;
   onCancelEdit?: () => void;
 }
 
 export default function AddTaskForm({
   onSubmit,
+  themeColors,
   editingTask = null,
   onCancelEdit,
 }: AddTaskFormProps) {
+  const styles = useMemo(() => createStyles(themeColors), [themeColors]);
   const [text, setText] = useState("");
   const [time, setTime] = useState<string | null>(null);
   const [remindMe, setRemindMe] = useState(false);
@@ -309,7 +312,7 @@ export default function AddTaskForm({
             value={text}
             onChangeText={setText}
             placeholder={editingTask ? "Editar tarea..." : "Nueva tarea..."}
-            placeholderTextColor={COLORS.textMuted}
+            placeholderTextColor={themeColors.textMuted}
             returnKeyType="done"
             onSubmitEditing={handleSubmit}
             maxLength={120}
@@ -441,7 +444,7 @@ export default function AddTaskForm({
                 }
               }}
               placeholder="Buscar o escribir dirección"
-              placeholderTextColor={COLORS.textMuted}
+              placeholderTextColor={themeColors.textMuted}
             />
 
             {!hasGoogleMapsApiKey() && (
@@ -520,7 +523,7 @@ export default function AddTaskForm({
                   is24Hour={false}
                   display="spinner"
                   onChange={handleTimeChange}
-                  textColor={COLORS.text}
+                  textColor={themeColors.text}
                 />
                 <Pressable
                   style={styles.modalDone}
@@ -537,261 +540,263 @@ export default function AddTaskForm({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    backgroundColor: COLORS.bg,
-    gap: 8,
-  },
-  mainRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: COLORS.card,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: COLORS.text,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  addBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: COLORS.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  addBtnPressed: {
-    backgroundColor: COLORS.accentSoft,
-    transform: [{ scale: 0.95 }],
-  },
-  addBtnDisabled: { backgroundColor: COLORS.border },
-  addBtnText: {
-    fontSize: 24,
-    color: "#FFF",
-    fontWeight: "700",
-    lineHeight: 26,
-  },
-  cancelEditBtn: {
-    alignSelf: "flex-end",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  cancelEditText: {
-    color: COLORS.textMuted,
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  optionsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  repeatSection: {
-    gap: 8,
-  },
-  repeatSectionTitle: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    fontWeight: "600",
-  },
-  repeatTrigger: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: COLORS.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  repeatTriggerText: {
-    fontSize: 13,
-    color: COLORS.text,
-    fontWeight: "500",
-  },
-  repeatChevron: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-  },
-  repeatOptionsBox: {
-    backgroundColor: COLORS.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    overflow: "hidden",
-  },
-  repeatOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  repeatOptionText: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    fontWeight: "500",
-  },
-  repeatOptionTextActive: {
-    color: COLORS.accent,
-    fontWeight: "700",
-  },
-  locationTrigger: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: COLORS.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  locationTriggerText: {
-    flex: 1,
-    fontSize: 13,
-    color: COLORS.text,
-    fontWeight: "500",
-  },
-  locationSection: {
-    gap: 8,
-  },
-  addressInput: {
-    backgroundColor: COLORS.card,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: COLORS.text,
-    fontSize: 13,
-  },
-  suggestionsBox: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.card,
-    overflow: "hidden",
-  },
-  suggestionItem: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  suggestionText: {
-    fontSize: 13,
-    color: COLORS.text,
-  },
-  locationHint: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-  },
-  locationError: {
-    fontSize: 11,
-    color: "#B23A3A",
-  },
-  map: {
-    height: 180,
-    borderRadius: 12,
-  },
-  clearLocationBtn: {
-    alignSelf: "flex-end",
-    paddingVertical: 4,
-  },
-  clearLocationText: {
-    fontSize: 15,
-    color: COLORS.textMuted,
-    fontWeight: "700",
-  },
-  timeBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.card,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 6,
-  },
-  timeBtnIcon: { fontSize: 14 },
-  timeBtnText: {
-    fontSize: 13,
-    color: COLORS.text,
-    fontWeight: "500",
-  },
-  clearTimeBtn: {
-    padding: 4,
-  },
-  clearTimeBtnText: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-  },
-  remindRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginLeft: "auto",
-    gap: 5,
-  },
-  remindBox: {
-    width: 22,
-    height: 22,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  remindBoxActive: {
-    backgroundColor: COLORS.accent,
-    borderColor: COLORS.accent,
-  },
-  remindCheck: {
-    fontSize: 12,
-    color: "#FFF",
-    fontWeight: "800",
-  },
-  remindLabel: {
-    fontSize: 15,
-    color: COLORS.textMuted,
-    fontWeight: "500",
-  },
-  // Modal iOS
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  modalContent: {
-    backgroundColor: COLORS.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 30,
-    paddingTop: 16,
-  },
-  modalDone: {
-    alignSelf: "center",
-    paddingHorizontal: 32,
-    paddingVertical: 10,
-    backgroundColor: COLORS.accent,
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  modalDoneText: {
-    color: "#FFF",
-    fontWeight: "700",
-    fontSize: 15,
-  },
-});
+function createStyles(colors: CalendarPalette) {
+  return StyleSheet.create({
+    container: {
+      paddingHorizontal: 20,
+      paddingTop: 10,
+      paddingBottom: 20,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      backgroundColor: colors.screenBg,
+      gap: 8,
+    },
+    mainRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    input: {
+      flex: 1,
+      backgroundColor: colors.cardBg,
+      borderRadius: 14,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      fontSize: 15,
+      color: colors.text,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    addBtn: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      backgroundColor: colors.accent,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    addBtnPressed: {
+      backgroundColor: colors.accentSoft,
+      transform: [{ scale: 0.95 }],
+    },
+    addBtnDisabled: { backgroundColor: colors.border },
+    addBtnText: {
+      fontSize: 24,
+      color: "#FFF",
+      fontWeight: "700",
+      lineHeight: 26,
+    },
+    cancelEditBtn: {
+      alignSelf: "flex-end",
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    cancelEditText: {
+      color: colors.textMuted,
+      fontSize: 15,
+      fontWeight: "700",
+    },
+    optionsRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    repeatSection: {
+      gap: 8,
+    },
+    repeatSectionTitle: {
+      fontSize: 13,
+      color: colors.textMuted,
+      fontWeight: "600",
+    },
+    repeatTrigger: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: colors.cardBg,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    repeatTriggerText: {
+      fontSize: 13,
+      color: colors.text,
+      fontWeight: "500",
+    },
+    repeatChevron: {
+      fontSize: 11,
+      color: colors.textMuted,
+    },
+    repeatOptionsBox: {
+      backgroundColor: colors.cardBg,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: "hidden",
+    },
+    repeatOption: {
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    repeatOptionText: {
+      fontSize: 13,
+      color: colors.textMuted,
+      fontWeight: "500",
+    },
+    repeatOptionTextActive: {
+      color: colors.accent,
+      fontWeight: "700",
+    },
+    locationTrigger: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: colors.cardBg,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    locationTriggerText: {
+      flex: 1,
+      fontSize: 13,
+      color: colors.text,
+      fontWeight: "500",
+    },
+    locationSection: {
+      gap: 8,
+    },
+    addressInput: {
+      backgroundColor: colors.cardBg,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      color: colors.text,
+      fontSize: 13,
+    },
+    suggestionsBox: {
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.cardBg,
+      overflow: "hidden",
+    },
+    suggestionItem: {
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    suggestionText: {
+      fontSize: 13,
+      color: colors.text,
+    },
+    locationHint: {
+      fontSize: 11,
+      color: colors.textMuted,
+    },
+    locationError: {
+      fontSize: 11,
+      color: colors.danger,
+    },
+    map: {
+      height: 180,
+      borderRadius: 12,
+    },
+    clearLocationBtn: {
+      alignSelf: "flex-end",
+      paddingVertical: 4,
+    },
+    clearLocationText: {
+      fontSize: 15,
+      color: colors.textMuted,
+      fontWeight: "700",
+    },
+    timeBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.cardBg,
+      paddingHorizontal: 13,
+      paddingVertical: 9,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      gap: 6,
+    },
+    timeBtnIcon: { fontSize: 14 },
+    timeBtnText: {
+      fontSize: 13,
+      color: colors.text,
+      fontWeight: "500",
+    },
+    clearTimeBtn: {
+      padding: 4,
+    },
+    clearTimeBtnText: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    remindRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginLeft: "auto",
+      gap: 5,
+    },
+    remindBox: {
+      width: 22,
+      height: 22,
+      borderRadius: 5,
+      borderWidth: 2,
+      borderColor: colors.border,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    remindBoxActive: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    remindCheck: {
+      fontSize: 12,
+      color: "#FFF",
+      fontWeight: "800",
+    },
+    remindLabel: {
+      fontSize: 15,
+      color: colors.textMuted,
+      fontWeight: "500",
+    },
+    // Modal iOS
+    modalOverlay: {
+      flex: 1,
+      justifyContent: "flex-end",
+      backgroundColor: "rgba(0,0,0,0.5)",
+    },
+    modalContent: {
+      backgroundColor: colors.cardBg,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingBottom: 30,
+      paddingTop: 16,
+    },
+    modalDone: {
+      alignSelf: "center",
+      paddingHorizontal: 32,
+      paddingVertical: 10,
+      backgroundColor: colors.accent,
+      borderRadius: 12,
+      marginTop: 8,
+    },
+    modalDoneText: {
+      color: "#FFF",
+      fontWeight: "700",
+      fontSize: 15,
+    },
+  });
+}

@@ -1,11 +1,12 @@
+import { useMemo } from "react";
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { COLORS } from "../constants/colors";
+import type { CalendarPalette } from "../constants/calendarTheme";
 import type { TasksByDate } from "../services/taskService";
 import { getDayLabel, getDayNumber } from "../utils/dateUtils";
 
@@ -14,6 +15,7 @@ interface DaySelectorProps {
   selectedDate: string;
   onSelectDate: (date: string) => void;
   tasksByDate: TasksByDate;
+  themeColors: CalendarPalette;
 }
 
 export default function DaySelector({
@@ -21,7 +23,10 @@ export default function DaySelector({
   selectedDate,
   onSelectDate,
   tasksByDate,
+  themeColors,
 }: DaySelectorProps) {
+  const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+
   return (
     <ScrollView
       horizontal
@@ -65,50 +70,52 @@ export default function DaySelector({
   );
 }
 
-const styles = StyleSheet.create({
-  scrollView: {
-    maxHeight: 95,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    gap: 8,
-  },
-  dayBtn: {
-    width: 56,
-    height: 70,
-    paddingVertical: 6,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.card,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 1,
-  },
-  dayBtnActive: {
-    backgroundColor: COLORS.accent,
-    borderColor: COLORS.accent,
-  },
-  dayLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: COLORS.textMuted,
-    textTransform: "uppercase",
-  },
-  dayLabelActive: { color: "rgba(255,255,255,0.8)" },
-  dayNum: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  dayNumActive: { color: "#FFF" },
-  dot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    marginTop: 1,
-  },
-  dotPending: { backgroundColor: COLORS.accentSoft },
-  dotDone: { backgroundColor: COLORS.done },
-});
+function createStyles(colors: CalendarPalette) {
+  return StyleSheet.create({
+    scrollView: {
+      maxHeight: 95,
+    },
+    scrollContent: {
+      paddingHorizontal: 16,
+      paddingVertical: 7,
+      gap: 8,
+    },
+    dayBtn: {
+      width: 56,
+      height: 70,
+      paddingVertical: 6,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.cardBg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      gap: 1,
+    },
+    dayBtnActive: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    dayLabel: {
+      fontSize: 11,
+      fontWeight: "600",
+      color: colors.textMuted,
+      textTransform: "uppercase",
+    },
+    dayLabelActive: { color: "rgba(255,255,255,0.8)" },
+    dayNum: {
+      fontSize: 17,
+      fontWeight: "700",
+      color: colors.text,
+    },
+    dayNumActive: { color: "#FFF" },
+    dot: {
+      width: 5,
+      height: 5,
+      borderRadius: 3,
+      marginTop: 1,
+    },
+    dotPending: { backgroundColor: colors.accentSoft },
+    dotDone: { backgroundColor: colors.done },
+  });
+}

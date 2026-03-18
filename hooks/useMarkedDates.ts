@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { COLORS } from "../constants/colors";
 import { getTaskDates } from "../services/taskService";
 
 // Tipo que espera react-native-calendars para sus marcadores (MarkedDates)
@@ -19,13 +18,26 @@ interface UseMarkedDatesReturn {
   reload: () => Promise<void>;
 }
 
-export function useMarkedDates(): UseMarkedDatesReturn {
+export function useMarkedDates(dotColor: string): UseMarkedDatesReturn {
   const [markedDates, setMarkedDates] = useState<MarkedDates>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadMarkers();
   }, []);
+
+  useEffect(() => {
+    setMarkedDates((previous) => {
+      const recolored: MarkedDates = {};
+      Object.entries(previous).forEach(([date, value]) => {
+        recolored[date] = {
+          ...value,
+          dots: value.dots.map((dot) => ({ ...dot, color: dotColor })),
+        };
+      });
+      return recolored;
+    });
+  }, [dotColor]);
 
   async function loadMarkers(): Promise<void> {
     const hasMarks = Object.keys(markedDates).length > 0;
@@ -34,7 +46,7 @@ export function useMarkedDates(): UseMarkedDatesReturn {
     try {
       if (hasMarks) {
         const dates = await request;
-        setMarkedDates(buildMarks(dates));
+        setMarkedDates(buildMarks(dates, dotColor));
         return;
       }
 
@@ -58,11 +70,11 @@ export function useMarkedDates(): UseMarkedDatesReturn {
       if (didTimeout || !firstResult) {
         setLoading(false);
         const dates = await request;
-        setMarkedDates(buildMarks(dates));
+        setMarkedDates(buildMarks(dates, dotColor));
         return;
       }
 
-      setMarkedDates(buildMarks(firstResult));
+      setMarkedDates(buildMarks(firstResult, dotColor));
     } catch (err) {
       console.error("Error cargando marcadores:", err);
     } finally {
@@ -73,11 +85,11 @@ export function useMarkedDates(): UseMarkedDatesReturn {
   return { markedDates, loading, reload: loadMarkers };
 }
 
-function buildMarks(dates: string[]): MarkedDates {
+function buildMarks(dates: string[], dotColor: string): MarkedDates {
   const marks: MarkedDates = {};
   dates.forEach((date) => {
     marks[date] = {
-      dots: [{ key: "task", color: COLORS.accent }],
+      dots: [{ key: "task", color: dotColor }],
     };
   });
   return marks;

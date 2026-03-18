@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import {
   Animated,
   FlatList,
@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { COLORS } from "../constants/colors";
+import type { CalendarPalette } from "../constants/calendarTheme";
 import type { Task } from "../services/taskService";
 import { formatTime } from "../utils/dateUtils";
 
@@ -16,6 +16,7 @@ interface TaskListProps {
   onToggle: (taskId: string) => void;
   onDelete: (taskId: string) => void;
   onPressTask: (task: Task) => void;
+  themeColors: CalendarPalette;
 }
 
 interface TaskItemProps {
@@ -23,9 +24,16 @@ interface TaskItemProps {
   onToggle: (taskId: string) => void;
   onDelete: (taskId: string) => void;
   onPressTask: (task: Task) => void;
+  styles: ReturnType<typeof createStyles>;
 }
 
-function TaskItem({ task, onToggle, onDelete, onPressTask }: TaskItemProps) {
+function TaskItem({
+  task,
+  onToggle,
+  onDelete,
+  onPressTask,
+  styles,
+}: TaskItemProps) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handleToggle = () => {
@@ -92,7 +100,10 @@ export default function TaskList({
   onToggle,
   onDelete,
   onPressTask,
+  themeColors,
 }: TaskListProps) {
+  const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+
   if (tasks.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -113,6 +124,7 @@ export default function TaskList({
           onToggle={onToggle}
           onDelete={onDelete}
           onPressTask={onPressTask}
+          styles={styles}
         />
       )}
       ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -122,83 +134,85 @@ export default function TaskList({
   );
 }
 
-const styles = StyleSheet.create({
-  listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 16,
-    flexGrow: 1,
-  },
-  taskRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.card,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    marginRight: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkboxDone: {
-    backgroundColor: COLORS.done,
-    borderColor: COLORS.done,
-  },
-  checkmark: {
-    color: "#FFF",
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  taskText: {
-    flex: 1,
-    fontSize: 15,
-    color: COLORS.text,
-    fontWeight: "500",
-  },
-  taskTextDone: {
-    textDecorationLine: "line-through",
-    color: COLORS.textMuted,
-  },
-  taskContent: {
-    flex: 1,
-    gap: 3,
-  },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  timeLabel: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    fontWeight: "500",
-  },
-  bellIcon: {
-    fontSize: 10,
-  },
-  addressLabel: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-  },
-  deleteBtn: { marginLeft: 8, padding: 4 },
-  deleteBtnText: { fontSize: 14, color: COLORS.textMuted },
-  separator: { height: 8 },
-  emptyContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingBottom: 60,
-  },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyText: { fontSize: 20, fontWeight: "700", color: COLORS.text },
-  emptySubtext: { marginTop: 6, fontSize: 14, color: COLORS.textMuted },
-});
+function createStyles(colors: CalendarPalette) {
+  return StyleSheet.create({
+    listContent: {
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 16,
+      flexGrow: 1,
+    },
+    taskRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.cardBg,
+      borderRadius: 14,
+      paddingVertical: 14,
+      paddingHorizontal: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: 7,
+      borderWidth: 2,
+      borderColor: colors.border,
+      marginRight: 12,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    checkboxDone: {
+      backgroundColor: colors.done,
+      borderColor: colors.done,
+    },
+    checkmark: {
+      color: "#FFF",
+      fontSize: 13,
+      fontWeight: "800",
+    },
+    taskText: {
+      flex: 1,
+      fontSize: 15,
+      color: colors.text,
+      fontWeight: "500",
+    },
+    taskTextDone: {
+      textDecorationLine: "line-through",
+      color: colors.textMuted,
+    },
+    taskContent: {
+      flex: 1,
+      gap: 3,
+    },
+    metaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    timeLabel: {
+      fontSize: 11,
+      color: colors.textMuted,
+      fontWeight: "500",
+    },
+    bellIcon: {
+      fontSize: 10,
+    },
+    addressLabel: {
+      fontSize: 11,
+      color: colors.textMuted,
+    },
+    deleteBtn: { marginLeft: 8, padding: 4 },
+    deleteBtnText: { fontSize: 14, color: colors.textMuted },
+    separator: { height: 8 },
+    emptyContainer: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingBottom: 60,
+    },
+    emptyIcon: { fontSize: 48, marginBottom: 12 },
+    emptyText: { fontSize: 20, fontWeight: "700", color: colors.text },
+    emptySubtext: { marginTop: 6, fontSize: 14, color: colors.textMuted },
+  });
+}

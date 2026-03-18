@@ -1,5 +1,5 @@
-import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -13,7 +13,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AddTaskForm from "../components/AddTaskForm";
 import DaySelector from "../components/DaySelector";
 import TaskList from "../components/TaskList";
-import { COLORS } from "../constants/colors";
+import type { CalendarPalette } from "../constants/calendarTheme";
+import { useCalendarTheme } from "../hooks/useCalendarTheme";
 import { useTasks } from "../hooks/useTasks";
 import type { NewTaskData, Task } from "../services/taskService";
 import { getMonthLabel, getWeekDates, todayISO } from "../utils/dateUtils";
@@ -21,6 +22,8 @@ import { getMonthLabel, getWeekDates, todayISO } from "../utils/dateUtils";
 export default function WeekScreen() {
   const { date } = useLocalSearchParams<{ date: string }>();
   const initialDate = date ?? todayISO();
+  const { activePalette, reloadThemePreference } = useCalendarTheme();
+  const styles = useMemo(() => createStyles(activePalette), [activePalette]);
 
   const weekDates = getWeekDates(initialDate); // lo que recibe el hook
 
@@ -45,6 +48,12 @@ export default function WeekScreen() {
       Alert.alert("Error", error, [{ text: "OK", onPress: clearError }]);
     }
   }, [error]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void reloadThemePreference();
+    }, [reloadThemePreference]),
+  );
 
   // Handlers: inyectan la fecha seleccionada
   const handleAdd = async (data: NewTaskData) => {
@@ -76,7 +85,7 @@ export default function WeekScreen() {
   if (loading) {
     return (
       <SafeAreaView style={[styles.safeArea, styles.centered]}>
-        <ActivityIndicator size="large" color={COLORS.accent} />
+        <ActivityIndicator size="large" color={activePalette.accent} />
         <Text style={styles.loadingText}>Cargando semana...</Text>
       </SafeAreaView>
     );
@@ -110,6 +119,7 @@ export default function WeekScreen() {
         selectedDate={selectedDate}
         onSelectDate={setSelectedDate}
         tasksByDate={tasksByDate}
+        themeColors={activePalette}
       />
 
       {!showAddTaskForm && (
@@ -131,12 +141,14 @@ export default function WeekScreen() {
         onToggle={handleToggle}
         onDelete={handleDelete}
         onPressTask={handlePressTask}
+        themeColors={activePalette}
       />
 
       {showAddTaskForm && (
         <AddTaskForm
           onSubmit={handleAdd}
           editingTask={editingTask}
+          themeColors={activePalette}
           onCancelEdit={() => {
             setEditingTask(null);
             setShowAddTaskForm(false);
@@ -147,70 +159,75 @@ export default function WeekScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.bg,
-  },
-  centered: {
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 16,
-  },
-  loadingText: {
-    color: COLORS.textMuted,
-    fontSize: 15,
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 8,
-    gap: 6,
-  },
-  backBtn: {
-    alignSelf: "flex-start",
-  },
-  backText: {
-    color: COLORS.accentSoft,
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  headerInfo: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "space-between",
-  },
-  monthLabel: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: COLORS.text,
-  },
-  pendingLabel: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-  },
-  addToggleRow: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 4,
-    alignItems: "flex-end",
-  },
-  addToggleButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: COLORS.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  addToggleButtonPressed: {
-    backgroundColor: COLORS.accentSoft,
-    transform: [{ scale: 0.96 }],
-  },
-  addToggleButtonText: {
-    color: "#FFF",
-    fontSize: 28,
-    lineHeight: 30,
-    fontWeight: "300",
-  },
-});
+function createStyles(colors: CalendarPalette) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.screenBg,
+    },
+    centered: {
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 16,
+    },
+    loadingText: {
+      color: colors.textMuted,
+      fontSize: 15,
+    },
+    header: {
+      paddingHorizontal: 24,
+      paddingTop: 16,
+      paddingBottom: 8,
+      gap: 6,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      backgroundColor: colors.screenBg,
+    },
+    backBtn: {
+      alignSelf: "flex-start",
+    },
+    backText: {
+      color: colors.accentSoft,
+      fontSize: 15,
+      fontWeight: "600",
+    },
+    headerInfo: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      justifyContent: "space-between",
+    },
+    monthLabel: {
+      fontSize: 22,
+      fontWeight: "800",
+      color: colors.text,
+    },
+    pendingLabel: {
+      fontSize: 14,
+      color: colors.textMuted,
+    },
+    addToggleRow: {
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 4,
+      alignItems: "flex-end",
+    },
+    addToggleButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 10,
+      backgroundColor: colors.accent,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    addToggleButtonPressed: {
+      backgroundColor: colors.accentSoft,
+      transform: [{ scale: 0.96 }],
+    },
+    addToggleButtonText: {
+      color: "#FFF",
+      fontSize: 28,
+      lineHeight: 30,
+      fontWeight: "300",
+    },
+  });
+}

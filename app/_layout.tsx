@@ -1,19 +1,24 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { COLORS } from "../constants/colors";
+import { useCalendarTheme } from "../hooks/useCalendarTheme";
 import { configureNotifications } from "../services/notificationService";
 
 configureNotifications();
 
 export default function RootLayout() {
+  const { activePalette, colorScheme } = useCalendarTheme();
+
   return (
     <>
-      <StatusBar style="light" backgroundColor={COLORS.bg} />
+      <StatusBar
+        style={colorScheme === "dark" ? "light" : "dark"}
+        backgroundColor={activePalette.screenBg}
+      />
 
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: COLORS.bg },
+          contentStyle: { backgroundColor: activePalette.screenBg },
         }}
       >
         <Stack.Screen name="index" options={{ animation: "none" }} />
