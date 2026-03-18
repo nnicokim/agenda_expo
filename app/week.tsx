@@ -3,9 +3,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   Pressable,
   StyleSheet,
   Text,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -92,70 +94,72 @@ export default function WeekScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          hitSlop={8}
-        >
-          <Text style={styles.backText}>← Calendario</Text>
-        </Pressable>
-
-        <View style={styles.headerInfo}>
-          <Text style={styles.monthLabel}>{getMonthLabel(selectedDate)}</Text>
-          <Text style={styles.pendingLabel}>
-            {total === 0
-              ? "No hay tareas"
-              : pending === 0
-                ? "Todo listo ✓"
-                : `${pending} pendiente${pending > 1 ? "s" : ""}`}
-          </Text>
-        </View>
-      </View>
-
-      <DaySelector
-        weekDates={weekDates}
-        selectedDate={selectedDate}
-        onSelectDate={setSelectedDate}
-        tasksByDate={tasksByDate}
-        themeColors={activePalette}
-      />
-
-      {!showAddTaskForm && (
-        <View style={styles.addToggleRow}>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
           <Pressable
-            style={({ pressed }) => [
-              styles.addToggleButton,
-              pressed && styles.addToggleButtonPressed,
-            ]}
-            onPress={() => setShowAddTaskForm(true)}
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            hitSlop={8}
           >
-            <Text style={styles.addToggleButtonText}>+</Text>
+            <Text style={styles.backText}>← Calendario</Text>
           </Pressable>
+
+          <View style={styles.headerInfo}>
+            <Text style={styles.monthLabel}>{getMonthLabel(selectedDate)}</Text>
+            <Text style={styles.pendingLabel}>
+              {total === 0
+                ? "No hay tareas"
+                : pending === 0
+                  ? "Todo listo ✓"
+                  : `${pending} pendiente${pending > 1 ? "s" : ""}`}
+            </Text>
+          </View>
         </View>
-      )}
 
-      <TaskList
-        tasks={todayTasks}
-        onToggle={handleToggle}
-        onDelete={handleDelete}
-        onPressTask={handlePressTask}
-        themeColors={activePalette}
-      />
-
-      {showAddTaskForm && (
-        <AddTaskForm
-          onSubmit={handleAdd}
-          editingTask={editingTask}
+        <DaySelector
+          weekDates={weekDates}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+          tasksByDate={tasksByDate}
           themeColors={activePalette}
-          onCancelEdit={() => {
-            setEditingTask(null);
-            setShowAddTaskForm(false);
-          }}
         />
-      )}
-    </SafeAreaView>
+
+        {!showAddTaskForm && (
+          <View style={styles.addToggleRow}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.addToggleButton,
+                pressed && styles.addToggleButtonPressed,
+              ]}
+              onPress={() => setShowAddTaskForm(true)}
+            >
+              <Text style={styles.addToggleButtonText}>+</Text>
+            </Pressable>
+          </View>
+        )}
+
+        <TaskList
+          tasks={todayTasks}
+          onToggle={handleToggle}
+          onDelete={handleDelete}
+          onPressTask={handlePressTask}
+          themeColors={activePalette}
+        />
+
+        {showAddTaskForm && (
+          <AddTaskForm
+            onSubmit={handleAdd}
+            editingTask={editingTask}
+            themeColors={activePalette}
+            onCancelEdit={() => {
+              setEditingTask(null);
+              setShowAddTaskForm(false);
+            }}
+          />
+        )}
+      </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 }
 
