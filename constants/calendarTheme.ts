@@ -44,7 +44,7 @@ export const PALETTES: Record<
     text: "#F8FAFC",
     textMuted: "#CBD5E1",
     border: "#1F2937",
-    accent: "#FFFFFF",
+    accent: "#90A1B9",
     accentSoft: "#E5E7EB",
     daySelectedText: "#0B0B0B",
     done: "#3D9970",

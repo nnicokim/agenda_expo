@@ -27,6 +27,11 @@ export default function RootLayout() {
           name="week"
           options={{ animation: "slide_from_bottom" }}
         />
+
+        <Stack.Screen
+          name="pending"
+          options={{ animation: "slide_from_bottom" }}
+        />
       </Stack>
     </>
   );

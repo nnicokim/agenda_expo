@@ -93,6 +93,35 @@ export async function getTaskDates(): Promise<DateStr[]> {
   return [...new Set((data ?? []).map((t) => t.day as DateStr))];
 }
 
+export async function getPendingParentTasks(): Promise<Task[]> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select("*")
+    .eq("done", false)
+    .is("recurrence_parent_id", null)
+    .neq("text", RECURRENCE_TOMBSTONE_TEXT)
+    .order("day", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    if (`${error.message}`.includes("recurrence_parent_id")) {
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from(TABLE)
+        .select("*")
+        .eq("done", false)
+        .neq("text", RECURRENCE_TOMBSTONE_TEXT)
+        .order("day", { ascending: true })
+        .order("created_at", { ascending: true });
+
+      if (fallbackError) throw fallbackError;
+      return (fallbackData ?? []).map(normalizeTask);
+    }
+    throw error;
+  }
+
+  return (data ?? []).map(normalizeTask);
+}
+
 // chequea que existan las tareas repetidas
 async function ensureOccurrencesForCalendarRange(): Promise<void> {
   const today = new Date();

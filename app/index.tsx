@@ -1,12 +1,12 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { CalendarList } from "react-native-calendars";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -85,6 +85,23 @@ export default function CalendarScreen() {
               },
             ]}
           >
+            <Pressable
+              style={({ pressed }) => [
+                styles.dropdownItem,
+                pressed && { opacity: 0.7 },
+              ]}
+              onPress={() => {
+                setShowHeaderMenu(false);
+                router.push("/pending");
+              }}
+            >
+              <Text
+                style={[styles.dropdownItemText, { color: activePalette.text }]}
+              >
+                Ver tareas pendientes
+              </Text>
+            </Pressable>
+
             <Pressable
               style={({ pressed }) => [
                 styles.dropdownItem,
