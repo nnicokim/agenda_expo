@@ -145,6 +145,7 @@ export default function WeekScreen() {
           onDelete={handleDelete}
           onPressTask={handlePressTask}
           themeColors={activePalette}
+          showRepeatInfo
         />
 
         {showAddTaskForm && (

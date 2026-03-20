@@ -10,6 +10,7 @@ interface TaskListProps {
   onDelete: (taskId: string) => void;
   onPressTask: (task: Task) => void;
   themeColors: CalendarPalette;
+  showRepeatInfo?: boolean;
 }
 
 export default function TaskList({
@@ -18,6 +19,7 @@ export default function TaskList({
   onDelete,
   onPressTask,
   themeColors,
+  showRepeatInfo = false,
 }: TaskListProps) {
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
 
@@ -42,6 +44,7 @@ export default function TaskList({
           onDelete={onDelete}
           onPressTask={onPressTask}
           themeColors={themeColors}
+          showRepeatInfo={showRepeatInfo}
         />
       )}
       ItemSeparatorComponent={() => <View style={styles.separator} />}
