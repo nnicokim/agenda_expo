@@ -9,8 +9,24 @@ interface TaskListProps {
   onToggle: (taskId: string) => void;
   onDelete: (taskId: string) => void;
   onPressTask: (task: Task) => void;
+  onTogglePinned?: (taskId: string, shouldPin: boolean) => void;
   themeColors: CalendarPalette;
   showRepeatInfo?: boolean;
+}
+
+function compareTasks(a: Task, b: Task): number {
+  if (a.is_pinned !== b.is_pinned) {
+    return a.is_pinned ? -1 : 1;
+  }
+
+  if (a.is_pinned && b.is_pinned) {
+    const leftPinnedAt = a.pinned_at ?? "";
+    const rightPinnedAt = b.pinned_at ?? "";
+    const byPinnedOrder = leftPinnedAt.localeCompare(rightPinnedAt);
+    if (byPinnedOrder !== 0) return byPinnedOrder;
+  }
+
+  return a.created_at.localeCompare(b.created_at);
 }
 
 export default function TaskList({
@@ -18,12 +34,14 @@ export default function TaskList({
   onToggle,
   onDelete,
   onPressTask,
+  onTogglePinned,
   themeColors,
   showRepeatInfo = false,
 }: TaskListProps) {
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const sortedTasks = useMemo(() => [...tasks].sort(compareTasks), [tasks]);
 
-  if (tasks.length === 0) {
+  if (sortedTasks.length === 0) {
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyIcon}>🌿</Text>
@@ -35,7 +53,7 @@ export default function TaskList({
 
   return (
     <FlatList
-      data={tasks}
+      data={sortedTasks}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
         <TaskRow
@@ -43,6 +61,7 @@ export default function TaskList({
           onToggle={onToggle}
           onDelete={onDelete}
           onPressTask={onPressTask}
+          onTogglePinned={onTogglePinned}
           themeColors={themeColors}
           showRepeatInfo={showRepeatInfo}
         />

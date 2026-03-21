@@ -11,6 +11,8 @@ export interface Task {
   id: string;
   text: string;
   done: boolean;
+  is_pinned: boolean;
+  pinned_at: string | null;
   day: DateStr;
   time: string | null;
   remind_me: boolean;
@@ -202,6 +204,24 @@ export async function toggleTask(
   const { data, error } = await supabase
     .from(TABLE)
     .update({ done: !currentDone })
+    .eq("id", taskId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return normalizeTask(data);
+}
+
+export async function setTaskPinned(
+  taskId: string,
+  shouldPin: boolean,
+): Promise<Task> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .update({
+      is_pinned: shouldPin,
+      pinned_at: shouldPin ? new Date().toISOString() : null,
+    })
     .eq("id", taskId)
     .select()
     .single();
@@ -533,6 +553,8 @@ async function insertRecurrenceRows(
 function normalizeTask(task: any): Task {
   return {
     ...(task as Task),
+    is_pinned: Boolean(task?.is_pinned),
+    pinned_at: task?.pinned_at ?? null,
     remind_me: Boolean(task?.remind_me),
     repeat_type: normalizeRepeatType(task?.repeat_type),
     address: task?.address ?? null,

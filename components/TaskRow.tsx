@@ -1,5 +1,6 @@
 import { useMemo, useRef } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
 import type { CalendarPalette } from "../constants/calendarTheme";
 import { REPEAT_TYPES } from "../constants/repeat";
 import type { Task } from "../services/taskService";
@@ -10,6 +11,7 @@ interface TaskRowProps {
   onToggle: (taskId: string) => void;
   onDelete: (taskId: string) => void;
   onPressTask?: (task: Task) => void;
+  onTogglePinned?: (taskId: string, shouldPin: boolean) => void;
   themeColors: CalendarPalette;
   showRepeatInfo?: boolean;
 }
@@ -32,11 +34,13 @@ export default function TaskRow({
   onToggle,
   onDelete,
   onPressTask,
+  onTogglePinned,
   themeColors,
   showRepeatInfo = false,
 }: TaskRowProps) {
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const swipeRef = useRef<Swipeable>(null);
 
   const handleToggle = () => {
     Animated.sequence([
@@ -55,8 +59,15 @@ export default function TaskRow({
   };
 
   const repeatInfo = showRepeatInfo ? getRepeatInfo(task) : null;
+  const pinActionLabel = task.is_pinned ? "Desanclar" : "Anclar";
+  const pinActionIcon = task.is_pinned ? "📌✕" : "📌";
 
-  return (
+  const handleTogglePinned = () => {
+    onTogglePinned?.(task.id, !task.is_pinned);
+    swipeRef.current?.close();
+  };
+
+  const rowContent = (
     <Animated.View
       style={[styles.taskRow, { transform: [{ scale: scaleAnim }] }]}
     >
@@ -73,12 +84,15 @@ export default function TaskRow({
         onPress={() => onPressTask?.(task)}
         disabled={!onPressTask}
       >
-        <Text
-          style={[styles.taskText, task.done && styles.taskTextDone]}
-          numberOfLines={2}
-        >
-          {task.text}
-        </Text>
+        <View style={styles.titleRow}>
+          <Text
+            style={[styles.taskText, task.done && styles.taskTextDone]}
+            numberOfLines={2}
+          >
+            {task.text}
+          </Text>
+          {task.is_pinned && <Text style={styles.pinnedIcon}>📌</Text>}
+        </View>
 
         {repeatInfo && <Text style={styles.repeatInfo}>{repeatInfo}</Text>}
 
@@ -104,6 +118,25 @@ export default function TaskRow({
         <Text style={styles.deleteBtnText}>✕</Text>
       </Pressable>
     </Animated.View>
+  );
+
+  if (!onTogglePinned) {
+    return rowContent;
+  }
+
+  return (
+    <Swipeable
+      ref={swipeRef}
+      renderRightActions={() => (
+        <Pressable style={styles.pinAction} onPress={handleTogglePinned}>
+          <Text style={styles.pinActionIcon}>{pinActionIcon}</Text>
+          <Text style={styles.pinActionText}>{pinActionLabel}</Text>
+        </Pressable>
+      )}
+      overshootRight={false}
+    >
+      {rowContent}
+    </Swipeable>
   );
 }
 
@@ -152,6 +185,15 @@ function createStyles(colors: CalendarPalette) {
       flex: 1,
       gap: 3,
     },
+    titleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+    },
+    pinnedIcon: {
+      fontSize: 14,
+    },
     repeatInfo: {
       fontSize: 11,
       color: colors.textMuted,
@@ -176,5 +218,25 @@ function createStyles(colors: CalendarPalette) {
     },
     deleteBtn: { marginLeft: 8, padding: 4 },
     deleteBtnText: { fontSize: 14, color: colors.textMuted },
+    pinAction: {
+      width: 96,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: colors.accent,
+      borderRadius: 14,
+      marginLeft: 8,
+      marginRight: 2,
+      marginVertical: 1,
+      gap: 3,
+    },
+    pinActionIcon: {
+      fontSize: 15,
+      color: "#FFF",
+    },
+    pinActionText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: "#FFF",
+    },
   });
 }

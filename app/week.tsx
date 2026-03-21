@@ -1,14 +1,14 @@
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Keyboard,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableWithoutFeedback,
-  View,
+    ActivityIndicator,
+    Alert,
+    Keyboard,
+    Pressable,
+    StyleSheet,
+    Text,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -41,6 +41,7 @@ export default function WeekScreen() {
     addTask,
     editTask,
     toggleTask,
+    toggleTaskPinned,
     deleteTask,
     clearError,
   } = useTasks(weekDates);
@@ -144,6 +145,9 @@ export default function WeekScreen() {
           onToggle={handleToggle}
           onDelete={handleDelete}
           onPressTask={handlePressTask}
+          onTogglePinned={(taskId, shouldPin) =>
+            toggleTaskPinned(selectedDate, taskId, shouldPin)
+          }
           themeColors={activePalette}
           showRepeatInfo
         />

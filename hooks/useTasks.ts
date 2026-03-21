@@ -21,6 +21,11 @@ interface UseTasksReturn {
     data: UpdateTaskData,
   ) => Promise<void>;
   toggleTask: (date: DateStr, taskId: string) => Promise<void>;
+  toggleTaskPinned: (
+    date: DateStr,
+    taskId: string,
+    shouldPin: boolean,
+  ) => Promise<void>;
   deleteTask: (date: DateStr, taskId: string) => Promise<void>;
   clearError: () => void;
 }
@@ -57,6 +62,8 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
         text: data.text,
         day: date,
         done: false,
+        is_pinned: false,
+        pinned_at: null,
         time: data.time,
         remind_me: data.remind_me,
         repeat_type: data.repeat_type ?? REPEAT_TYPES.NONE,
@@ -217,6 +224,42 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
     [tasksByDate],
   );
 
+  const toggleTaskPinned = useCallback(
+    async (
+      date: DateStr,
+      taskId: string,
+      shouldPin: boolean,
+    ): Promise<void> => {
+      const prev = tasksByDate[date] ?? [];
+      const task = prev.find((t) => t.id === taskId);
+      if (!task) return;
+
+      const optimisticPinnedAt = shouldPin ? new Date().toISOString() : null;
+
+      setTasksByDate((state) => ({
+        ...state,
+        [date]: state[date].map((t) =>
+          t.id === taskId
+            ? { ...t, is_pinned: shouldPin, pinned_at: optimisticPinnedAt }
+            : t,
+        ),
+      }));
+
+      try {
+        const saved = await taskService.setTaskPinned(taskId, shouldPin);
+        setTasksByDate((state) => ({
+          ...state,
+          [date]: state[date].map((t) => (t.id === taskId ? saved : t)),
+        }));
+      } catch (err) {
+        console.error("Error anclando:", err);
+        setTasksByDate((state) => ({ ...state, [date]: prev }));
+        setError("No se pudo actualizar el anclado.");
+      }
+    },
+    [tasksByDate],
+  );
+
   const deleteTask = useCallback(
     async (date: DateStr, taskId: string): Promise<void> => {
       const prev = tasksByDate[date] ?? [];
@@ -279,6 +322,7 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
     addTask,
     editTask,
     toggleTask,
+    toggleTaskPinned,
     deleteTask,
     clearError,
   };

@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useCalendarTheme } from "../hooks/useCalendarTheme";
 import { configureNotifications } from "../services/notificationService";
 
@@ -9,7 +10,7 @@ export default function RootLayout() {
   const { activePalette, colorScheme } = useCalendarTheme();
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar
         style={colorScheme === "dark" ? "light" : "dark"}
         backgroundColor={activePalette.screenBg}
@@ -33,6 +34,6 @@ export default function RootLayout() {
           options={{ animation: "slide_from_bottom" }}
         />
       </Stack>
-    </>
+    </GestureHandlerRootView>
   );
 }
