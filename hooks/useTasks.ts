@@ -2,11 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { REPEAT_TYPES } from "../constants/repeat";
 import * as notifService from "../services/notificationService";
 import type {
-    DateStr,
-    NewTaskData,
-    Task,
-    TasksByDate,
-    UpdateTaskData,
+  DateStr,
+  NewTaskData,
+  Task,
+  TasksByDate,
+  UpdateTaskData,
 } from "../services/taskService";
 import * as taskService from "../services/taskService";
 
@@ -64,6 +64,7 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
         done: false,
         is_pinned: false,
         pinned_at: null,
+        deleted_at: null,
         time: data.time,
         remind_me: data.remind_me,
         repeat_type: data.repeat_type ?? REPEAT_TYPES.NONE,
@@ -268,7 +269,7 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
       setTasksByDate((s) => ({
         ...s,
         [date]: s[date].filter((t) => t.id !== taskId),
-      }));
+      })); // optimistic update
 
       try {
         const isMonthlyMaster =
@@ -306,7 +307,7 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
         }
       } catch (err) {
         console.error("Error borrando:", err);
-        setTasksByDate((s) => ({ ...s, [date]: prev }));
+        setTasksByDate((s) => ({ ...s, [date]: prev })); // Rollback
         setError("No se pudo eliminar la tarea.");
       }
     },

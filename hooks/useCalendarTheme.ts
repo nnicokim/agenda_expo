@@ -1,12 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    CALENDAR_THEME_STORAGE_KEY,
-    type CalendarThemeKey,
-    isCalendarThemeKey,
-    resolveCalendarPalette,
+  CALENDAR_THEME_STORAGE_KEY,
+  type CalendarThemeKey,
+  isCalendarThemeKey,
+  resolveCalendarPalette,
 } from "../constants/calendarTheme";
-import { useColorScheme } from "./use-color-scheme";
+import { useColorScheme } from "./useColorScheme";
 
 interface UseCalendarThemeReturn {
   themeKey: CalendarThemeKey;

@@ -1,7 +1,7 @@
 import {
-    type RepeatType,
-    normalizeRepeatType,
-    REPEAT_TYPES,
+  type RepeatType,
+  normalizeRepeatType,
+  REPEAT_TYPES,
 } from "../constants/repeat";
 import { supabase } from "../lib/supabase";
 
@@ -13,6 +13,7 @@ export interface Task {
   done: boolean;
   is_pinned: boolean;
   pinned_at: string | null;
+  deleted_at: string | null;
   day: DateStr;
   time: string | null;
   remind_me: boolean;
@@ -51,7 +52,6 @@ export interface UpdateTaskData {
 export type TasksByDate = Record<DateStr, Task[]>;
 
 const TABLE = "tasks";
-const RECURRENCE_TOMBSTONE_TEXT = "__recurrence_deleted__";
 
 export async function getTasksForDates(dates: DateStr[]): Promise<TasksByDate> {
   await ensureMonthlyOccurrencesForDates(dates);
@@ -61,6 +61,7 @@ export async function getTasksForDates(dates: DateStr[]): Promise<TasksByDate> {
   const { data, error } = await supabase
     .from(TABLE)
     .select("*")
+    .is("deleted_at", null)
     .in("day", dates)
     .order("created_at", { ascending: true });
 
@@ -71,7 +72,7 @@ export async function getTasksForDates(dates: DateStr[]): Promise<TasksByDate> {
   return (data ?? []).reduce((acc, task) => {
     if (acc[task.day] !== undefined) {
       const normalized = normalizeTask(task);
-      if (normalized.text !== RECURRENCE_TOMBSTONE_TEXT) {
+      if (!normalized.deleted_at) {
         acc[task.day].push(normalized);
       }
     }
@@ -88,7 +89,7 @@ export async function getTaskDates(): Promise<DateStr[]> {
   const { data, error } = await supabase
     .from(TABLE)
     .select("day")
-    .neq("text", RECURRENCE_TOMBSTONE_TEXT);
+    .is("deleted_at", null);
 
   if (error) throw error;
 
@@ -101,7 +102,7 @@ export async function getPendingParentTasks(): Promise<Task[]> {
     .select("*")
     .eq("done", false)
     .is("recurrence_parent_id", null)
-    .neq("text", RECURRENCE_TOMBSTONE_TEXT)
+    .is("deleted_at", null)
     .order("day", { ascending: true })
     .order("created_at", { ascending: true });
 
@@ -111,7 +112,7 @@ export async function getPendingParentTasks(): Promise<Task[]> {
         .from(TABLE)
         .select("*")
         .eq("done", false)
-        .neq("text", RECURRENCE_TOMBSTONE_TEXT)
+        .is("deleted_at", null)
         .order("day", { ascending: true })
         .order("created_at", { ascending: true });
 
@@ -260,16 +261,11 @@ export async function deleteTask(taskId: string): Promise<void> {
   if (error) throw error;
 }
 
-// solo la marca como borrada, para no perder la info de recurrencia
-// NO se realiza un borrado fisico como las demas tareas
 export async function deleteRecurringOccurrence(taskId: string): Promise<void> {
   const { error } = await supabase
     .from(TABLE)
     .update({
-      text: RECURRENCE_TOMBSTONE_TEXT,
-      done: true,
-      remind_me: false,
-      notification_id: null,
+      deleted_at: new Date().toISOString(),
     })
     .eq("id", taskId);
 
@@ -555,6 +551,7 @@ function normalizeTask(task: any): Task {
     ...(task as Task),
     is_pinned: Boolean(task?.is_pinned),
     pinned_at: task?.pinned_at ?? null,
+    deleted_at: task?.deleted_at ?? null,
     remind_me: Boolean(task?.remind_me),
     repeat_type: normalizeRepeatType(task?.repeat_type),
     address: task?.address ?? null,
