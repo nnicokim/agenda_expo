@@ -1,6 +1,5 @@
 import * as Location from "expo-location";
-
-const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
+import { supabase, supabaseConfigError } from "../lib/supabase";
 
 export interface PlaceSuggestion {
   description: string;
@@ -12,6 +11,12 @@ export interface PlaceDetails {
   latitude: number;
   longitude: number;
   placeId: string;
+}
+
+interface PlacesProxyResponse {
+  suggestions?: PlaceSuggestion[];
+  details?: PlaceDetails | null;
+  error?: string;
 }
 
 export async function requestForegroundLocationPermission(): Promise<boolean> {
@@ -48,26 +53,25 @@ export async function fetchAddressSuggestions(
   input: string,
 ): Promise<PlaceSuggestion[]> {
   const query = input.trim();
-  if (!GOOGLE_MAPS_API_KEY || query.length < 3) return [];
-
-  const url =
-    "https://maps.googleapis.com/maps/api/place/autocomplete/json" +
-    `?input=${encodeURIComponent(query)}` +
-    "&types=address" +
-    `&key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}`;
+  if (!isSupabaseConfigured() || query.length < 3) return [];
 
   try {
-    const response = await fetch(url);
-    const json = await response.json();
-    if (json.status !== "OK" && json.status !== "ZERO_RESULTS") {
+    const { data, error } = await supabase.functions.invoke(
+      "google-places-proxy",
+      {
+        body: {
+          action: "autocomplete",
+          input: query,
+        },
+      },
+    );
+
+    if (error) {
       return [];
     }
 
-    const predictions = Array.isArray(json.predictions) ? json.predictions : [];
-    return predictions.slice(0, 5).map((prediction: any) => ({
-      description: String(prediction.description ?? ""),
-      placeId: String(prediction.place_id ?? ""),
-    }));
+    const payload = (data ?? {}) as PlacesProxyResponse;
+    return Array.isArray(payload.suggestions) ? payload.suggestions : [];
   } catch {
     return [];
   }
@@ -76,40 +80,30 @@ export async function fetchAddressSuggestions(
 export async function fetchPlaceDetails(
   placeId: string,
 ): Promise<PlaceDetails | null> {
-  if (!GOOGLE_MAPS_API_KEY || !placeId) return null;
-
-  const url =
-    "https://maps.googleapis.com/maps/api/place/details/json" +
-    `?place_id=${encodeURIComponent(placeId)}` +
-    "&fields=formatted_address,geometry" +
-    `&key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}`;
+  if (!isSupabaseConfigured() || !placeId) return null;
 
   try {
-    const response = await fetch(url);
-    const json = await response.json();
-    if (json.status !== "OK") return null;
+    const { data, error } = await supabase.functions.invoke(
+      "google-places-proxy",
+      {
+        body: {
+          action: "details",
+          placeId,
+        },
+      },
+    );
 
-    const location = json.result?.geometry?.location;
-    const address = json.result?.formatted_address;
-    if (
-      !location ||
-      typeof location.lat !== "number" ||
-      typeof location.lng !== "number"
-    ) {
+    if (error) {
       return null;
     }
 
-    return {
-      address: String(address ?? ""),
-      latitude: location.lat,
-      longitude: location.lng,
-      placeId,
-    };
+    const payload = (data ?? {}) as PlacesProxyResponse;
+    return payload.details ?? null;
   } catch {
     return null;
   }
 }
 
-export function hasGoogleMapsApiKey(): boolean {
-  return Boolean(GOOGLE_MAPS_API_KEY);
+export function isSupabaseConfigured(): boolean {
+  return !supabaseConfigError; // Fallo con la URL o key
 }

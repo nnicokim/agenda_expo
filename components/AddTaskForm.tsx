@@ -12,7 +12,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import MapView, { Marker, type MapPressEvent } from "react-native-maps";
 import type { CalendarPalette } from "../constants/calendarTheme";
 import {
   REPEAT_LABELS,
@@ -23,13 +22,14 @@ import {
 import {
   fetchAddressSuggestions,
   fetchPlaceDetails,
-  hasGoogleMapsApiKey,
+  isSupabaseConfigured,
   requestForegroundLocationPermission,
   reverseGeocodeToAddress,
   type PlaceSuggestion,
 } from "../services/locationService";
 import type { NewTaskData, Task } from "../services/taskService";
 import { formatTime } from "../utils/dateUtils";
+import LocationMap from "./LocationMap";
 
 interface AddTaskFormProps {
   onSubmit: (data: NewTaskData) => Promise<void> | void;
@@ -65,7 +65,6 @@ export default function AddTaskForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const inputRef = useRef<TextInput>(null);
-  const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
     if (editingTask) {
@@ -153,7 +152,7 @@ export default function AddTaskForm({
   useEffect(() => {
     if (!showLocationSection || !showSuggestions) return;
     const query = address.trim();
-    if (query.length < 3 || !hasGoogleMapsApiKey()) {
+    if (query.length < 3 || !isSupabaseConfigured()) {
       setSuggestions([]);
       return;
     }
@@ -213,8 +212,7 @@ export default function AddTaskForm({
     setRemindMe(false);
   };
 
-  const handleMapPress = async (event: MapPressEvent) => {
-    const { latitude: lat, longitude: lng } = event.nativeEvent.coordinate;
+  const handleMapCoordinateSelect = async (lat: number, lng: number) => {
     setLatitude(lat);
     setLongitude(lng);
     setPlaceId(null);
@@ -237,16 +235,6 @@ export default function AddTaskForm({
     setPlaceId(details.placeId);
     setShowSuggestions(false);
     setSuggestions([]);
-
-    mapRef.current?.animateToRegion(
-      {
-        latitude: details.latitude,
-        longitude: details.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      },
-      400,
-    );
   };
 
   const clearLocation = () => {
@@ -447,9 +435,10 @@ export default function AddTaskForm({
               placeholderTextColor={themeColors.textMuted}
             />
 
-            {!hasGoogleMapsApiKey() && (
+            {!isSupabaseConfigured() && (
               <Text style={styles.locationHint}>
-                Configurá EXPO_PUBLIC_GOOGLE_MAPS_API_KEY para sugerencias.
+                Falta configurar Supabase (URL y anon key) para habilitar
+                sugerencias.
               </Text>
             )}
 
@@ -481,17 +470,17 @@ export default function AddTaskForm({
               Seleccionar ubicación en el mapa:
             </Text>
 
-            <MapView
-              ref={mapRef}
-              style={styles.map}
+            <LocationMap
               initialRegion={initialMapRegion}
-              showsUserLocation
-              onPress={handleMapPress}
-            >
-              {latitude != null && longitude != null && (
-                <Marker coordinate={{ latitude, longitude }} />
-              )}
-            </MapView>
+              selectedCoordinate={
+                latitude != null && longitude != null
+                  ? { latitude, longitude }
+                  : null
+              }
+              onSelectCoordinate={handleMapCoordinateSelect}
+              style={styles.map}
+              themeColors={themeColors}
+            />
 
             {(address || (latitude != null && longitude != null)) && (
               <Pressable
