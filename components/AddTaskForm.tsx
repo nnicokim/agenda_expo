@@ -95,7 +95,7 @@ export default function AddTaskForm({
     setPlaceId(null);
     setShowLocationSection(false);
     setShowRepeatOptions(false);
-  }, [editingTask?.id]);
+  }, [editingTask]);
 
   useEffect(() => {
     let isMounted = true;

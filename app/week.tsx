@@ -50,7 +50,7 @@ export default function WeekScreen() {
     if (error) {
       Alert.alert("Error", error, [{ text: "OK", onPress: clearError }]);
     }
-  }, [error]);
+  }, [clearError, error]);
 
   useFocusEffect(
     useCallback(() => {

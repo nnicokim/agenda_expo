@@ -1,11 +1,9 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import {
-  CALENDAR_THEME_STORAGE_KEY,
   type CalendarThemeKey,
-  isCalendarThemeKey,
   resolveCalendarPalette,
 } from "../constants/calendarTheme";
+import { useCalendarThemeStore } from "../stores/useCalendarThemeStore";
 import { useColorScheme } from "./useColorScheme";
 
 interface UseCalendarThemeReturn {
@@ -18,26 +16,13 @@ interface UseCalendarThemeReturn {
 
 export function useCalendarTheme(): UseCalendarThemeReturn {
   const colorScheme = useColorScheme();
-  const [themeKey, setThemeKey] = useState<CalendarThemeKey>("white");
-
-  const loadThemePreference = useCallback(async () => {
-    try {
-      const stored = await AsyncStorage.getItem(CALENDAR_THEME_STORAGE_KEY);
-      if (!stored) return;
-
-      if (isCalendarThemeKey(stored)) {
-        setThemeKey(stored);
-        return;
-      }
-
-      if (stored === "violet") {
-        setThemeKey("white");
-        await AsyncStorage.setItem(CALENDAR_THEME_STORAGE_KEY, "white");
-      }
-    } catch {
-      // no-op
-    }
-  }, []);
+  const themeKey = useCalendarThemeStore((state) => state.themeKey);
+  const loadThemePreference = useCalendarThemeStore(
+    (state) => state.loadThemePreference,
+  );
+  const persistThemeKey = useCalendarThemeStore(
+    (state) => state.persistThemeKey,
+  );
 
   useEffect(() => {
     void loadThemePreference();
@@ -47,15 +32,6 @@ export function useCalendarTheme(): UseCalendarThemeReturn {
     () => resolveCalendarPalette(themeKey, colorScheme),
     [themeKey, colorScheme],
   );
-
-  const persistThemeKey = useCallback(async (nextKey: CalendarThemeKey) => {
-    setThemeKey(nextKey);
-    try {
-      await AsyncStorage.setItem(CALENDAR_THEME_STORAGE_KEY, nextKey);
-    } catch {
-      // no-op
-    }
-  }, []);
 
   return {
     themeKey,

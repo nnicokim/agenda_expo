@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { getTaskDates } from "../services/taskService";
+import { useEffect, useMemo } from "react";
+import { useTasksStore } from "../stores/useTasksStore";
 
 // Tipo que espera react-native-calendars para sus marcadores (MarkedDates)
 type MarkedDates = Record<
@@ -19,70 +19,20 @@ interface UseMarkedDatesReturn {
 }
 
 export function useMarkedDates(dotColor: string): UseMarkedDatesReturn {
-  const [markedDates, setMarkedDates] = useState<MarkedDates>({});
-  const [loading, setLoading] = useState(true);
+  const markedTaskDates = useTasksStore((state) => state.markedTaskDates);
+  const loading = useTasksStore((state) => state.markedDatesLoading);
+  const reload = useTasksStore((state) => state.loadMarkedTaskDates);
 
   useEffect(() => {
-    loadMarkers();
-  }, []);
+    void reload();
+  }, [reload]);
 
-  useEffect(() => {
-    setMarkedDates((previous) => {
-      const recolored: MarkedDates = {};
-      Object.entries(previous).forEach(([date, value]) => {
-        recolored[date] = {
-          ...value,
-          dots: value.dots.map((dot) => ({ ...dot, color: dotColor })),
-        };
-      });
-      return recolored;
-    });
-  }, [dotColor]);
+  const markedDates = useMemo(
+    () => buildMarks(markedTaskDates, dotColor),
+    [dotColor, markedTaskDates],
+  );
 
-  async function loadMarkers(): Promise<void> {
-    const hasMarks = Object.keys(markedDates).length > 0;
-    const request = getTaskDates();
-
-    try {
-      if (hasMarks) {
-        const dates = await request;
-        setMarkedDates(buildMarks(dates, dotColor));
-        return;
-      }
-
-      setLoading(true);
-
-      // Si tarda mas de 900ms, se oculta el spinner
-      let didTimeout = false;
-      const timeoutMs = 900;
-      const timeoutPromise = new Promise<null>((resolve) => {
-        setTimeout(() => {
-          didTimeout = true;
-          resolve(null);
-        }, timeoutMs);
-      });
-
-      const firstResult = await Promise.race([
-        request.then((dates) => dates as string[] | null),
-        timeoutPromise,
-      ]);
-
-      if (didTimeout || !firstResult) {
-        setLoading(false);
-        const dates = await request;
-        setMarkedDates(buildMarks(dates, dotColor));
-        return;
-      }
-
-      setMarkedDates(buildMarks(firstResult, dotColor));
-    } catch (err) {
-      console.error("Error cargando marcadores:", err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return { markedDates, loading, reload: loadMarkers };
+  return { markedDates, loading, reload };
 }
 
 function buildMarks(dates: string[], dotColor: string): MarkedDates {

@@ -27,7 +27,7 @@ export default function CalendarScreen() {
   useFocusEffect(
     useCallback(() => {
       reload();
-    }, []),
+    }, [reload]),
   );
 
   const enrichedMarks = {
