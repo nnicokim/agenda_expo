@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Modal,
@@ -12,7 +12,7 @@ import { CalendarList } from "react-native-calendars";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CIRCLE_OPTIONS, PALETTES } from "../constants/calendarTheme";
 import { useCalendarTheme } from "../hooks/useCalendarTheme";
-import { useMarkedDates } from "../hooks/useMarkedDates";
+import { useTasksStore } from "../stores/useTasksStore";
 import { todayISO } from "../utils/dateUtils";
 
 const TODAY = todayISO();
@@ -20,14 +20,23 @@ const TODAY = todayISO();
 export default function CalendarScreen() {
   const { themeKey, activePalette, colorScheme, persistThemeKey } =
     useCalendarTheme();
-  const { markedDates, loading, reload } = useMarkedDates(activePalette.accent);
+  const markedTaskDates = useTasksStore((state) => state.markedTaskDates);
+  const loading = useTasksStore((state) => state.markedDatesLoading);
+  const reloadMarkedTaskDates = useTasksStore(
+    (state) => state.loadMarkedTaskDates,
+  );
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [showColorModal, setShowColorModal] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
-      reload();
-    }, [reload]),
+      void reloadMarkedTaskDates();
+    }, [reloadMarkedTaskDates]),
+  );
+
+  const markedDates = useMemo(
+    () => buildMarks(markedTaskDates, activePalette.accent),
+    [activePalette.accent, markedTaskDates],
   );
 
   const enrichedMarks = {
@@ -92,7 +101,7 @@ export default function CalendarScreen() {
               ]}
               onPress={() => {
                 setShowHeaderMenu(false);
-                router.push("/pending");
+                router.push({ pathname: "/pendingTasks" as any });
               }}
             >
               <Text
@@ -246,6 +255,27 @@ export default function CalendarScreen() {
       </Modal>
     </SafeAreaView>
   );
+}
+
+type MarkedDates = Record<
+  string,
+  {
+    dots: { key: string; color: string }[];
+    selected?: boolean;
+    selectedColor?: string;
+  }
+>;
+
+function buildMarks(dates: string[], dotColor: string): MarkedDates {
+  const marks: MarkedDates = {};
+
+  dates.forEach((date) => {
+    marks[date] = {
+      dots: [{ key: "task", color: dotColor }],
+    };
+  });
+
+  return marks;
 }
 
 const styles = StyleSheet.create({

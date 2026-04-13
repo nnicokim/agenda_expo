@@ -1,11 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import type {
   DateStr,
   NewTaskData,
   TasksByDate,
   UpdateTaskData,
 } from "../services/taskService";
-import { useTasksStore } from "../stores/useTasksStore";
+import { selectTasksByDates, useTasksStore } from "../stores/useTasksStore";
+import { useShallow } from "zustand/react/shallow";
 
 interface UseTasksReturn {
   tasksByDate: TasksByDate;
@@ -29,7 +30,13 @@ interface UseTasksReturn {
 
 export function useTasks(weekDates: string[]): UseTasksReturn {
   const weekDatesKey = JSON.stringify(weekDates);
-  const tasksByDate = useTasksStore((state) => state.tasksByDate);
+  const stableWeekDates = useMemo<DateStr[]>(
+    () => JSON.parse(weekDatesKey) as DateStr[],
+    [weekDatesKey],
+  );
+  const tasksByDate = useTasksStore(
+    useShallow(selectTasksByDates(stableWeekDates)),
+  );
   const loading = useTasksStore((state) => state.weekLoading);
   const error = useTasksStore((state) => state.weekError);
   const loadWeekTasks = useTasksStore((state) => state.loadWeekTasks);
@@ -41,9 +48,9 @@ export function useTasks(weekDates: string[]): UseTasksReturn {
   const clearError = useTasksStore((state) => state.clearWeekError);
 
   useEffect(() => {
-    if (weekDates.length === 0) return;
-    void loadWeekTasks(weekDates);
-  }, [loadWeekTasks, weekDates, weekDatesKey]);
+    if (stableWeekDates.length === 0) return;
+    void loadWeekTasks(stableWeekDates);
+  }, [loadWeekTasks, stableWeekDates]);
 
   return {
     tasksByDate,

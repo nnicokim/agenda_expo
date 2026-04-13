@@ -30,7 +30,7 @@ export default function RootLayout() {
         />
 
         <Stack.Screen
-          name="pending"
+          name="pendingTasks"
           options={{ animation: "slide_from_bottom" }}
         />
       </Stack>

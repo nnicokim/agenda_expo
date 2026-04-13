@@ -17,8 +17,8 @@ import DaySelector from "../components/DaySelector";
 import TaskList from "../components/TaskList";
 import type { CalendarPalette } from "../constants/calendarTheme";
 import { useCalendarTheme } from "../hooks/useCalendarTheme";
-import { useTasks } from "../hooks/useTasks";
 import type { NewTaskData, Task } from "../services/taskService";
+import { selectTasksForDate, useTasksStore } from "../stores/useTasksStore";
 import { getMonthLabel, getWeekDates, todayISO } from "../utils/dateUtils";
 
 export default function WeekScreen() {
@@ -27,24 +27,27 @@ export default function WeekScreen() {
   const { activePalette, reloadThemePreference } = useCalendarTheme();
   const styles = useMemo(() => createStyles(activePalette), [activePalette]);
 
-  const weekDates = getWeekDates(initialDate); // lo que recibe el hook
+  const weekDates = useMemo(() => getWeekDates(initialDate), [initialDate]); // lo que recibe el hook
 
   const [selectedDate, setSelectedDate] = useState<string>(initialDate);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showAddTaskForm, setShowAddTaskForm] = useState(false);
 
-  // el objeto que retorna el hook useTasks, entre {}
-  const {
-    tasksByDate,
-    loading,
-    error,
-    addTask,
-    editTask,
-    toggleTask,
-    toggleTaskPinned,
-    deleteTask,
-    clearError,
-  } = useTasks(weekDates);
+  const loading = useTasksStore((state) => state.weekLoading);
+  const error = useTasksStore((state) => state.weekError);
+  const loadWeekTasks = useTasksStore((state) => state.loadWeekTasks);
+  const addTask = useTasksStore((state) => state.addTask);
+  const editTask = useTasksStore((state) => state.editTask);
+  const toggleTask = useTasksStore((state) => state.toggleTask);
+  const toggleTaskPinned = useTasksStore((state) => state.toggleTaskPinned);
+  const deleteTask = useTasksStore((state) => state.deleteTask);
+  const clearError = useTasksStore((state) => state.clearWeekError);
+  const todayTasks = useTasksStore(selectTasksForDate(selectedDate));
+
+  useEffect(() => {
+    if (weekDates.length === 0) return;
+    void loadWeekTasks(weekDates);
+  }, [loadWeekTasks, weekDates]);
 
   useEffect(() => {
     if (error) {
@@ -81,7 +84,6 @@ export default function WeekScreen() {
     setShowAddTaskForm(false);
   }, [selectedDate]);
 
-  const todayTasks = tasksByDate[selectedDate] ?? [];
   const pending = todayTasks.filter((t) => !t.done).length;
   const total = todayTasks.length;
 
@@ -122,7 +124,6 @@ export default function WeekScreen() {
           weekDates={weekDates}
           selectedDate={selectedDate}
           onSelectDate={setSelectedDate}
-          tasksByDate={tasksByDate}
           themeColors={activePalette}
         />
 

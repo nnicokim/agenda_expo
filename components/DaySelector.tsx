@@ -7,14 +7,14 @@ import {
     View,
 } from "react-native";
 import type { CalendarPalette } from "../constants/calendarTheme";
-import type { TasksByDate } from "../services/taskService";
+import { selectTasksByDates, useTasksStore } from "../stores/useTasksStore";
 import { getDayLabel, getDayNumber } from "../utils/dateUtils";
+import { useShallow } from "zustand/react/shallow";
 
 interface DaySelectorProps {
   weekDates: string[];
   selectedDate: string;
   onSelectDate: (date: string) => void;
-  tasksByDate: TasksByDate;
   themeColors: CalendarPalette;
 }
 
@@ -22,10 +22,10 @@ export default function DaySelector({
   weekDates,
   selectedDate,
   onSelectDate,
-  tasksByDate,
   themeColors,
 }: DaySelectorProps) {
   const styles = useMemo(() => createStyles(themeColors), [themeColors]);
+  const tasksByDate = useTasksStore(useShallow(selectTasksByDates(weekDates)));
 
   return (
     <ScrollView

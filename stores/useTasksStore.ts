@@ -99,6 +99,13 @@ export const selectTasksForDate =
   (state: TasksStoreState): Task[] =>
     state.tasksByDate[date] ?? [];
 
+export const selectTasksByDates =
+  (dates: string[]) =>
+  (state: TasksStoreState): TasksByDate =>
+    Object.fromEntries(
+      dates.map((date) => [date, state.tasksByDate[date] ?? []]),
+    );
+
 export const useTasksStore = create<TasksStoreState>((set, get) => ({
   tasksByDate: {},
   pendingTasks: [],
