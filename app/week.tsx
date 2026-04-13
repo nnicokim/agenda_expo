@@ -1,5 +1,5 @@
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -24,7 +24,7 @@ import { getMonthLabel, getWeekDates, todayISO } from "../utils/dateUtils";
 export default function WeekScreen() {
   const { date } = useLocalSearchParams<{ date: string }>();
   const initialDate = date ?? todayISO();
-  const { activePalette, reloadThemePreference } = useCalendarTheme();
+  const { activePalette } = useCalendarTheme();
   const styles = useMemo(() => createStyles(activePalette), [activePalette]);
 
   const weekDates = useMemo(() => getWeekDates(initialDate), [initialDate]); // lo que recibe el hook
@@ -55,12 +55,6 @@ export default function WeekScreen() {
     }
   }, [clearError, error]);
 
-  useFocusEffect(
-    useCallback(() => {
-      void reloadThemePreference();
-    }, [reloadThemePreference]),
-  );
-
   // Handlers: inyectan la fecha seleccionada
   const handleAdd = async (data: NewTaskData) => {
     if (editingTask) {
@@ -78,11 +72,11 @@ export default function WeekScreen() {
     setEditingTask(task);
     setShowAddTaskForm(true);
   };
-
-  useEffect(() => {
+  const handleSelectDate = (nextDate: string) => {
+    setSelectedDate(nextDate);
     setEditingTask(null);
     setShowAddTaskForm(false);
-  }, [selectedDate]);
+  };
 
   const pending = todayTasks.filter((t) => !t.done).length;
   const total = todayTasks.length;
@@ -123,7 +117,7 @@ export default function WeekScreen() {
         <DaySelector
           weekDates={weekDates}
           selectedDate={selectedDate}
-          onSelectDate={setSelectedDate}
+          onSelectDate={handleSelectDate}
           themeColors={activePalette}
         />
 

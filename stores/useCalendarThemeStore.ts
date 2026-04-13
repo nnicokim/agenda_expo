@@ -9,40 +9,48 @@ import {
 interface CalendarThemeStoreState {
   // para indicar la forma exacta del Store al hacer "create"
   themeKey: CalendarThemeKey;
+  hasLoadedPreference: boolean;
   loadThemePreference: () => Promise<void>;
   persistThemeKey: (nextKey: CalendarThemeKey) => Promise<void>;
 }
 
-export const useCalendarThemeStore = create<CalendarThemeStoreState>((set) => ({
-  // se define el store con su estado y sus acciones
-  themeKey: "white",
+export const useCalendarThemeStore = create<CalendarThemeStoreState>(
+  (set, get) => ({
+    // se define el store con su estado y sus acciones
+    themeKey: "white",
+    hasLoadedPreference: false,
 
-  loadThemePreference: async () => {
-    try {
-      const stored = await AsyncStorage.getItem(CALENDAR_THEME_STORAGE_KEY);
-      if (!stored) return;
+    loadThemePreference: async () => {
+      if (get().hasLoadedPreference) return;
 
-      if (isCalendarThemeKey(stored)) {
-        set({ themeKey: stored });
-        return;
+      try {
+        const stored = await AsyncStorage.getItem(CALENDAR_THEME_STORAGE_KEY);
+        if (!stored) return;
+
+        if (isCalendarThemeKey(stored)) {
+          set({ themeKey: stored });
+          return;
+        }
+
+        if (stored === "violet") {
+          set({ themeKey: "white" });
+          await AsyncStorage.setItem(CALENDAR_THEME_STORAGE_KEY, "white");
+        }
+      } catch {
+        // no-op
+      } finally {
+        set({ hasLoadedPreference: true });
       }
+    },
 
-      if (stored === "violet") {
-        set({ themeKey: "white" });
-        await AsyncStorage.setItem(CALENDAR_THEME_STORAGE_KEY, "white");
+    persistThemeKey: async (nextKey) => {
+      set({ themeKey: nextKey });
+
+      try {
+        await AsyncStorage.setItem(CALENDAR_THEME_STORAGE_KEY, nextKey);
+      } catch {
+        // no-op
       }
-    } catch {
-      // no-op
-    }
-  },
-
-  persistThemeKey: async (nextKey) => {
-    set({ themeKey: nextKey });
-
-    try {
-      await AsyncStorage.setItem(CALENDAR_THEME_STORAGE_KEY, nextKey);
-    } catch {
-      // no-op
-    }
-  },
-}));
+    },
+  }),
+);

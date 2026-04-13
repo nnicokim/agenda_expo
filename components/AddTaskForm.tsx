@@ -150,21 +150,39 @@ export default function AddTaskForm({
   }, [showLocationSection]);
 
   useEffect(() => {
-    if (!showLocationSection || !showSuggestions) return;
-    const query = address.trim();
-    if (query.length < 3 || !isSupabaseConfigured()) {
-      setSuggestions([]);
+    if (!showLocationSection || !showSuggestions) {
+      setIsFetchingSuggestions(false);
       return;
     }
 
-    const timer = setTimeout(async () => {
-      setIsFetchingSuggestions(true);
-      const nextSuggestions = await fetchAddressSuggestions(query);
-      setSuggestions(nextSuggestions);
+    const query = address.trim();
+    if (query.length < 3 || !isSupabaseConfigured()) {
+      setSuggestions([]);
       setIsFetchingSuggestions(false);
+      return;
+    }
+
+    let isActive = true;
+
+    const timer = setTimeout(async () => {
+      if (!isActive) return;
+      setIsFetchingSuggestions(true);
+
+      try {
+        const nextSuggestions = await fetchAddressSuggestions(query);
+        if (!isActive) return;
+        setSuggestions(nextSuggestions);
+      } finally {
+        if (isActive) {
+          setIsFetchingSuggestions(false);
+        }
+      }
     }, 350);
 
-    return () => clearTimeout(timer);
+    return () => {
+      isActive = false;
+      clearTimeout(timer);
+    };
   }, [address, showLocationSection, showSuggestions]);
 
   const handleSubmit = async () => {

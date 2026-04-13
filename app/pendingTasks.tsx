@@ -47,16 +47,15 @@ function groupTasksByMonth(tasks: Task[]): MonthSection[] {
 }
 
 export default function PendingTasksScreen() {
-  const { activePalette, reloadThemePreference } = useCalendarTheme();
+  const { activePalette } = useCalendarTheme();
   const styles = useMemo(() => createStyles(activePalette), [activePalette]);
   const { tasks, loading, error, reload, toggleTask, deleteTask, clearError } =
     usePendingTasks();
 
   useFocusEffect(
     useCallback(() => {
-      void reloadThemePreference();
       void reload();
-    }, [reloadThemePreference, reload]),
+    }, [reload]),
   );
 
   useFocusEffect(

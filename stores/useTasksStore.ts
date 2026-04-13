@@ -41,6 +41,8 @@ interface TasksStoreState {
   clearPendingError: () => void;
 }
 
+const EMPTY_TASKS: Task[] = [];
+
 function sortPendingTasks(tasks: Task[]): Task[] {
   return [...tasks].sort((a, b) => {
     const byDay = a.day.localeCompare(b.day);
@@ -97,13 +99,13 @@ function maybeRemoveMarkedDate(
 export const selectTasksForDate =
   (date: string) =>
   (state: TasksStoreState): Task[] =>
-    state.tasksByDate[date] ?? [];
+    state.tasksByDate[date] ?? EMPTY_TASKS;
 
 export const selectTasksByDates =
   (dates: string[]) =>
   (state: TasksStoreState): TasksByDate =>
     Object.fromEntries(
-      dates.map((date) => [date, state.tasksByDate[date] ?? []]),
+      dates.map((date) => [date, state.tasksByDate[date] ?? EMPTY_TASKS]),
     );
 
 export const useTasksStore = create<TasksStoreState>((set, get) => ({

@@ -17,6 +17,9 @@ interface UseCalendarThemeReturn {
 export function useCalendarTheme(): UseCalendarThemeReturn {
   const colorScheme = useColorScheme();
   const themeKey = useCalendarThemeStore((state) => state.themeKey);
+  const hasLoadedPreference = useCalendarThemeStore(
+    (state) => state.hasLoadedPreference,
+  );
   const loadThemePreference = useCalendarThemeStore(
     (state) => state.loadThemePreference,
   );
@@ -25,8 +28,9 @@ export function useCalendarTheme(): UseCalendarThemeReturn {
   );
 
   useEffect(() => {
+    if (hasLoadedPreference) return;
     void loadThemePreference();
-  }, [loadThemePreference]);
+  }, [hasLoadedPreference, loadThemePreference]);
 
   const activePalette = useMemo(
     () => resolveCalendarPalette(themeKey, colorScheme),
